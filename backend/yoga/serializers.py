@@ -1,5 +1,9 @@
 from rest_framework import serializers
-from .models import Asana
+from .models import (
+    Asana,
+    CyclePhase,
+    CycleRecommendation,
+)
 
 
 class AsanaSerializer(serializers.ModelSerializer):
@@ -24,4 +28,39 @@ class AsanaSerializer(serializers.ModelSerializer):
             "is_active",
             "created_at",
             "updated_at",
+        ]
+
+class CycleRecommendationSerializer(serializers.ModelSerializer):
+    asana = AsanaSerializer(read_only=True)
+
+    class Meta:
+        model = CycleRecommendation
+        fields = [
+            "id",
+            "asana",
+            "priority",
+            "duration_seconds",
+            "modification_note",
+            "is_active",
+        ]
+
+class CyclePhaseSerializer(serializers.ModelSerializer):
+    recommendations = CycleRecommendationSerializer(
+        many=True,
+        read_only=True,
+    )
+
+    class Meta:
+        model = CyclePhase
+        fields = [
+            "id",
+            "name",
+            "slug",
+            "description",
+            "energy_context",
+            "practice_style",
+            "intensity",
+            "duration_minutes",
+            "safety_guidance",
+            "recommendations",
         ]

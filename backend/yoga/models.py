@@ -62,3 +62,91 @@ class Asana(models.Model):
 
     def __str__(self):
         return self.name
+
+class CyclePhase(models.Model):
+    PHASE_CHOICES = [
+        ("menstrual", "Menstrual"),
+        ("follicular", "Follicular"),
+        ("ovulation", "Ovulation"),
+        ("luteal", "Luteal"),
+    ]
+
+    name = models.CharField(
+        max_length=50,
+        choices=PHASE_CHOICES,
+        unique=True,
+    )
+
+    slug = models.SlugField(
+        max_length=50,
+        unique=True,
+    )
+
+    description = models.TextField()
+
+    energy_context = models.CharField(
+        max_length=100,
+    )
+
+    practice_style = models.CharField(
+        max_length=100,
+    )
+
+    intensity = models.CharField(
+        max_length=30,
+    )
+
+    duration_minutes = models.PositiveIntegerField(
+        default=10,
+    )
+
+    safety_guidance = models.TextField(
+        blank=True,
+    )
+
+    class Meta:
+        ordering = ["id"]
+
+    def __str__(self):
+        return self.name
+
+class CycleRecommendation(models.Model):
+    cycle_phase = models.ForeignKey(
+        CyclePhase,
+        on_delete=models.CASCADE,
+        related_name="recommendations",
+    )
+
+    asana = models.ForeignKey(
+        Asana,
+        on_delete=models.CASCADE,
+        related_name="cycle_recommendations",
+    )
+
+    priority = models.PositiveIntegerField(
+        default=1,
+    )
+
+    duration_seconds = models.PositiveIntegerField(
+        default=60,
+    )
+
+    modification_note = models.TextField(
+        blank=True,
+    )
+
+    is_active = models.BooleanField(
+        default=True,
+    )
+
+    class Meta:
+        ordering = ["priority", "id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["cycle_phase", "asana"],
+                name="unique_cycle_phase_asana",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.cycle_phase.name} - {self.asana.name}"

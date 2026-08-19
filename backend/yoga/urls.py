@@ -4,6 +4,8 @@ from .views import (
     AsanaDetailView,
     AsanaListView,
     SOSRecommendationView,
+    CyclePhaseListView,
+    CyclePhaseDetailView,
 )
 
 
@@ -24,5 +26,17 @@ urlpatterns = [
         "sos/",
         SOSRecommendationView.as_view(),
         name="sos-recommendation",
+    ),
+
+    path(
+        "cycle-phases/",
+        CyclePhaseListView.as_view(),
+        name="cycle-phase-list",
+    ),
+
+    path(
+        "cycle-phases/<slug:slug>/",
+        CyclePhaseDetailView.as_view(),
+        name="cycle-phase-detail",
     ),
 ]

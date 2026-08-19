@@ -4,6 +4,17 @@ from rest_framework.filters import SearchFilter
 from .models import Asana
 from .serializers import AsanaSerializer
 
+from .models import (
+    Asana,
+    CyclePhase,
+)
+
+from .serializers import (
+    AsanaSerializer,
+    CyclePhaseSerializer,
+)
+
+
 
 class AsanaListView(generics.ListAPIView):
     serializer_class = AsanaSerializer
@@ -166,3 +177,20 @@ class SOSRecommendationView(generics.ListAPIView):
             asana
             for score, asana in ranked_asanas[:5]
         ]
+
+class CyclePhaseListView(generics.ListAPIView):
+    serializer_class = CyclePhaseSerializer
+
+    def get_queryset(self):
+        return CyclePhase.objects.prefetch_related(
+            "recommendations__asana"
+        ).all()
+
+class CyclePhaseDetailView(generics.RetrieveAPIView):
+    serializer_class = CyclePhaseSerializer
+    lookup_field = "slug"
+
+    def get_queryset(self):
+        return CyclePhase.objects.prefetch_related(
+            "recommendations__asana"
+        ).all()
