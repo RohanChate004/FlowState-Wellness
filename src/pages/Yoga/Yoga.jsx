@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import Navbar from "../../components/Navbar/Navbar";
 
 const navItems = [
@@ -73,32 +74,7 @@ const cyclePhases = [
   },
 ];
 
-const asanas = [
-  {
-    sanskrit: "Tadasana",
-    name: "Mountain Pose",
-    category: "Full Body",
-    level: "Beginner",
-    image:
-      "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=85",
-  },
-  {
-    sanskrit: "Vrikshasana",
-    name: "Tree Pose",
-    category: "Balance",
-    level: "Beginner",
-    image:
-      "https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=800&q=85",
-  },
-  {
-    sanskrit: "Bhujangasana",
-    name: "Cobra Pose",
-    category: "Back",
-    level: "Beginner",
-    image:
-      "https://images.unsplash.com/photo-1540206276207-3af25c08abc4?auto=format&fit=crop&w=800&q=85",
-  },
-];
+
 
 const programs = [
   {
@@ -131,6 +107,14 @@ function Yoga() {
   const [activeSection, setActiveSection] = useState("sos");
   const [selectedFeeling, setSelectedFeeling] = useState(null);
 
+  const [asanas, setAsanas] = useState([]);
+  const [loadingAsanas, setLoadingAsanas] = useState(true);
+  const [asanaError, setAsanaError] = useState("");
+
+  const [sosRecommendations, setSosRecommendations] = useState([]);
+  const [sosLoading, setSosLoading] = useState(false);
+  const [sosError, setSosError] = useState("");
+
   useEffect(() => {
     const sections = navItems
       .map((item) => document.getElementById(item.id))
@@ -156,6 +140,65 @@ function Yoga() {
 
     return () => observer.disconnect();
   }, []);
+
+  useEffect(() => {
+    const fetchAsanas = async () => {
+      try {
+        setLoadingAsanas(true);
+        setAsanaError("");
+
+        const response = await fetch(
+          "http://127.0.0.1:8000/api/yoga/asanas/"
+        );
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch asanas.");
+        }
+
+        const data = await response.json();
+
+        setAsanas(data);
+      } catch (error) {
+        console.error("Asana API Error:", error);
+        setAsanaError("Unable to load asanas right now.");
+      } finally {
+        setLoadingAsanas(false);
+      }
+    };
+
+    fetchAsanas();
+  }, []);
+
+  const getSOSRecommendations = async () => {
+    if (!selectedFeeling) return;
+
+    try {
+      setSosLoading(true);
+      setSosError("");
+      setSosRecommendations([]);
+
+      const response = await fetch(
+        `http://127.0.0.1:8000/api/yoga/sos/?mood=${encodeURIComponent(
+          selectedFeeling
+        )}`
+      );
+
+      if (!response.ok) {
+        throw new Error("Unable to get recommendations.");
+      }
+
+      const data = await response.json();
+
+      setSosRecommendations(data);
+    } catch (error) {
+      console.error("SOS recommendation error:", error);
+      setSosError(
+        "We couldn't create your practice right now. Please try again."
+      );
+    } finally {
+      setSosLoading(false);
+    }
+  };
 
   const scrollToSection = (id) => {
     const section = document.getElementById(id);
@@ -219,11 +262,10 @@ function Yoga() {
                   <button
                     key={item.id}
                     onClick={() => scrollToSection(item.id)}
-                    className={`flex shrink-0 items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold transition ${
-                      activeSection === item.id
-                        ? "bg-green-700 text-white shadow-sm"
-                        : "bg-gray-50 text-gray-600 hover:bg-green-50 hover:text-green-700"
-                    }`}
+                    className={`flex shrink-0 items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold transition ${activeSection === item.id
+                      ? "bg-green-700 text-white shadow-sm"
+                      : "bg-gray-50 text-gray-600 hover:bg-green-50 hover:text-green-700"
+                      }`}
                   >
                     <span>{item.icon}</span>
                     {item.label}
@@ -286,11 +328,10 @@ function Yoga() {
                   <button
                     key={feeling.title}
                     onClick={() => setSelectedFeeling(feeling.title)}
-                    className={`rounded-2xl border p-3 text-left transition ${
-                      selectedFeeling === feeling.title
-                        ? "border-green-500 bg-green-50 ring-2 ring-green-100"
-                        : "border-gray-200 bg-gray-50 hover:border-green-300 hover:bg-green-50"
-                    }`}
+                    className={`rounded-2xl border p-3 text-left transition ${selectedFeeling === feeling.title
+                      ? "border-green-500 bg-green-50 ring-2 ring-green-100"
+                      : "border-gray-200 bg-gray-50 hover:border-green-300 hover:bg-green-50"
+                      }`}
                   >
                     <div className="flex items-center gap-3">
                       <span className="text-xl">{feeling.icon}</span>
@@ -310,13 +351,87 @@ function Yoga() {
               </div>
 
               <button
-                onClick={() => scrollToSection("deep-dive")}
-                className="mt-4 w-full rounded-full bg-green-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-green-800"
+                onClick={getSOSRecommendations}
+                disabled={!selectedFeeling || sosLoading}
               >
-                {selectedFeeling
-                  ? `Continue With ${selectedFeeling} →`
-                  : "Find My Practice →"}
+                {sosLoading ? "Creating Your Practice..." : "Find My Practice"}
               </button>
+
+              {sosLoading && (
+  <div className="mt-6 rounded-2xl bg-white p-6 text-center shadow-sm">
+    <div className="text-3xl">🧘</div>
+
+    <p className="mt-3 text-sm font-semibold">
+      Creating your FlowState practice...
+    </p>
+
+    <p className="mt-1 text-xs text-gray-500">
+      Finding movements that match how you feel.
+    </p>
+  </div>
+)}
+
+{sosError && (
+  <div className="mt-6 rounded-2xl border border-red-100 bg-red-50 p-5 text-sm text-red-600">
+    {sosError}
+  </div>
+)}
+
+{!sosLoading && sosRecommendations.length > 0 && (
+  <div className="mt-6 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
+    <div className="flex items-center justify-between">
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-wide text-green-700">
+          Your FlowState Reset
+        </p>
+
+        <h3 className="mt-1 text-xl font-bold">
+          A practice for how you're feeling
+        </h3>
+      </div>
+
+      <span className="rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-700">
+        {sosRecommendations.length} practices
+      </span>
+    </div>
+
+    <div className="mt-5 grid gap-3 sm:grid-cols-2">
+      {sosRecommendations.map((asana) => (
+        <Link
+          key={asana.id}
+          to={`/asanas/${asana.id}`}
+          className="group rounded-2xl border border-gray-100 p-4 transition hover:-translate-y-0.5 hover:border-green-200 hover:shadow-sm"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold text-green-700">
+                {asana.sanskrit_name}
+              </p>
+
+              <h4 className="mt-1 font-bold">
+                {asana.name}
+              </h4>
+            </div>
+
+            <span className="text-lg transition group-hover:translate-x-1">
+              →
+            </span>
+          </div>
+
+          <p className="mt-2 text-xs leading-5 text-gray-500">
+            {asana.short_description}
+          </p>
+
+          <div className="mt-3 flex gap-2 text-[10px] font-medium text-gray-500">
+            <span>{asana.category}</span>
+            <span>•</span>
+            <span>{asana.difficulty}</span>
+          </div>
+        </Link>
+      ))}
+    </div>
+  </div>
+)}
 
               <p className="mt-3 text-center text-xs text-gray-400">
                 Modify or skip movements whenever something doesn't feel right.
@@ -591,41 +706,85 @@ function Yoga() {
             </button>
           </div>
 
-          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {asanas.map((asana) => (
-              <div
-                key={asana.sanskrit}
-                className="group overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-100 transition hover:-translate-y-1 hover:shadow-lg"
-              >
-                <div className="relative h-40 overflow-hidden">
-                  <img
-                    src={asana.image}
-                    alt={`Person practicing ${asana.name}`}
-                    className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                  />
-
-                  <span className="absolute left-3 top-3 rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-semibold text-green-700 backdrop-blur-sm">
-                    {asana.level}
-                  </span>
-                </div>
-
-                <div className="p-4">
-                  <p className="text-xs font-semibold text-green-700">
-                    {asana.sanskrit}
-                  </p>
-
-                  <h4 className="mt-1 font-bold">{asana.name}</h4>
-
-                  <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
-                    <span>{asana.category}</span>
-
-                    <button className="font-semibold text-green-700">
-                      Details →
-                    </button>
-                  </div>
-                </div>
+          <div className="mt-4">
+            {loadingAsanas ? (
+              <div className="rounded-2xl bg-white p-8 text-center shadow-sm ring-1 ring-gray-100">
+                <p className="text-sm text-gray-500">
+                  Loading asanas...
+                </p>
               </div>
-            ))}
+            ) : asanaError ? (
+              <div className="rounded-2xl border border-red-100 bg-red-50 p-6 text-center">
+                <p className="text-sm text-red-600">
+                  {asanaError}
+                </p>
+
+                <button
+                  onClick={() => window.location.reload()}
+                  className="mt-3 rounded-full bg-red-600 px-4 py-2 text-xs font-semibold text-white"
+                >
+                  Try Again
+                </button>
+              </div>
+            ) : asanas.length === 0 ? (
+              <div className="rounded-2xl bg-white p-8 text-center shadow-sm ring-1 ring-gray-100">
+                <p className="text-sm text-gray-500">
+                  No asanas available yet.
+                </p>
+              </div>
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {asanas.slice(0, 3).map((asana) => (
+                  <div
+                    key={asana.id}
+                    className="group overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-100 transition hover:-translate-y-1 hover:shadow-lg"
+                  >
+                    <div className="relative h-40 overflow-hidden bg-green-50">
+                      {asana.image_url ? (
+                        <img
+                          src={asana.image_url}
+                          alt={`Person practicing ${asana.name}`}
+                          className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                        />
+                      ) : (
+                        <div className="flex h-full items-center justify-center">
+                          <span className="text-5xl">🧘</span>
+                        </div>
+                      )}
+
+                      <span className="absolute left-3 top-3 rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-semibold text-green-700 backdrop-blur-sm">
+                        {asana.difficulty}
+                      </span>
+                    </div>
+
+                    <div className="p-4">
+                      <p className="text-xs font-semibold text-green-700">
+                        {asana.sanskrit_name}
+                      </p>
+
+                      <h4 className="mt-1 font-bold">
+                        {asana.name}
+                      </h4>
+
+                      <p className="mt-2 line-clamp-2 text-xs leading-5 text-gray-500">
+                        {asana.short_description}
+                      </p>
+
+                      <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
+                        <span>{asana.category}</span>
+
+                        <Link
+                          to={`/asanas/${asana.id}`}
+                          className="font-semibold text-green-700 hover:text-green-800"
+                        >
+                          Details →
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </section>

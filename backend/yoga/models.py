@@ -30,6 +30,16 @@ class Asana(models.Model):
         blank=True,
     )
 
+    mood_tags = models.JSONField(
+        default=list,
+        blank=True,
+    )
+
+    energy_level = models.CharField(
+        max_length=30,
+        default="Moderate",
+    )
+
     contraindications = models.TextField(
         blank=True,
     )

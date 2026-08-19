@@ -6,6 +6,7 @@ import Signup from "./pages/Signup/Signup";
 import Dashboard from "./pages/Dashboard/Dashboard";
 import Yoga from "./pages/Yoga/Yoga";
 import ProtectedRoute from "./components/ProtectedRoute/ProtectedRoute";
+import AsanaDetails from "./pages/AsanaDetails/AsanaDetails";
 
 function App() {
   return (
@@ -29,6 +30,10 @@ function App() {
 
         <Route path="/yoga" element={<Yoga />} />
 
+        <Route
+          path="/asanas/:id"
+          element={<AsanaDetails />}
+        />
       </Routes>
     </BrowserRouter>
   );
