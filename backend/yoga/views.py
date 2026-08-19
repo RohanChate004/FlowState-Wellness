@@ -40,6 +40,59 @@ class AsanaDetailView(generics.RetrieveAPIView):
 class SOSRecommendationView(generics.ListAPIView):
     serializer_class = AsanaSerializer
 
+    SOS_PROFILES = {
+        "anxious": {
+            "categories": [
+                "Relaxation",
+                "Seated",
+                "Mobility",
+            ],
+            "difficulty": ["Beginner"],
+            "energy": ["Low"],
+        },
+
+        "sore": {
+            "categories": [
+                "Mobility",
+                "Relaxation",
+                "Hip Opener",
+                "Forward Bend",
+            ],
+            "difficulty": ["Beginner", "Intermediate"],
+            "energy": ["Low", "Moderate"],
+        },
+
+        "wired": {
+            "categories": [
+                "Relaxation",
+                "Seated",
+                "Mobility",
+            ],
+            "difficulty": ["Beginner"],
+            "energy": ["Low"],
+        },
+
+        "cramping": {
+            "categories": [
+                "Relaxation",
+                "Hip Opener",
+                "Seated",
+            ],
+            "difficulty": ["Beginner"],
+            "energy": ["Low"],
+        },
+
+        "low_energy": {
+            "categories": [
+                "Relaxation",
+                "Seated",
+                "Mobility",
+            ],
+            "difficulty": ["Beginner"],
+            "energy": ["Low"],
+        },
+    }
+
     def get_queryset(self):
         mood = self.request.query_params.get("mood")
 
@@ -48,13 +101,24 @@ class SOSRecommendationView(generics.ListAPIView):
 
         mood = mood.strip().lower()
 
+        profile = self.SOS_PROFILES.get(mood)
+
+        if not profile:
+            return Asana.objects.none()
+
         asanas = Asana.objects.filter(
             is_active=True
-        ).order_by("difficulty", "name")
+        )
 
-        matching_asanas = []
+        ranked_asanas = []
 
         for asana in asanas:
+
+            score = 0
+
+            # -----------------------------
+            # 1. Mood match
+            # -----------------------------
             tags = asana.mood_tags or []
 
             normalized_tags = [
@@ -63,9 +127,42 @@ class SOSRecommendationView(generics.ListAPIView):
             ]
 
             if mood in normalized_tags:
-                matching_asanas.append(asana)
+                score += 10
 
-            if len(matching_asanas) >= 5:
-                break
+            # -----------------------------
+            # 2. Category match
+            # -----------------------------
+            if asana.category in profile["categories"]:
+                score += 5
 
-        return matching_asanas
+            # -----------------------------
+            # 3. Difficulty match
+            # -----------------------------
+            if asana.difficulty in profile["difficulty"]:
+                score += 3
+
+            # -----------------------------
+            # 4. Energy match
+            # -----------------------------
+            if asana.energy_level in profile["energy"]:
+                score += 3
+
+            # Only recommend poses
+            # that have some relevance.
+            if score > 0:
+                ranked_asanas.append(
+                    (score, asana)
+                )
+
+        # Highest score first
+        ranked_asanas.sort(
+            key=lambda item: (
+                -item[0],
+                item[1].name
+            )
+        )
+
+        return [
+            asana
+            for score, asana in ranked_asanas[:5]
+        ]

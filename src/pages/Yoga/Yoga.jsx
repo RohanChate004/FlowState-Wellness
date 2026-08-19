@@ -353,85 +353,83 @@ function Yoga() {
               <button
                 onClick={getSOSRecommendations}
                 disabled={!selectedFeeling || sosLoading}
+                className={`mt-4 w-full rounded-full px-5 py-3 text-sm font-semibold transition ${selectedFeeling && !sosLoading
+                  ? "bg-green-700 text-white hover:bg-green-800"
+                  : "cursor-not-allowed bg-gray-200 text-gray-400"
+                  }`}
               >
-                {sosLoading ? "Creating Your Practice..." : "Find My Practice"}
+                {sosLoading
+                  ? "Creating Your Practice..."
+                  : selectedFeeling
+                    ? `Continue With ${selectedFeeling} →`
+                    : "Select How You're Feeling →"}
               </button>
 
-              {sosLoading && (
-  <div className="mt-6 rounded-2xl bg-white p-6 text-center shadow-sm">
-    <div className="text-3xl">🧘</div>
-
-    <p className="mt-3 text-sm font-semibold">
-      Creating your FlowState practice...
-    </p>
-
-    <p className="mt-1 text-xs text-gray-500">
-      Finding movements that match how you feel.
-    </p>
-  </div>
-)}
-
-{sosError && (
-  <div className="mt-6 rounded-2xl border border-red-100 bg-red-50 p-5 text-sm text-red-600">
-    {sosError}
-  </div>
-)}
-
-{!sosLoading && sosRecommendations.length > 0 && (
-  <div className="mt-6 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
-    <div className="flex items-center justify-between">
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-wide text-green-700">
-          Your FlowState Reset
-        </p>
-
-        <h3 className="mt-1 text-xl font-bold">
-          A practice for how you're feeling
-        </h3>
-      </div>
-
-      <span className="rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-700">
-        {sosRecommendations.length} practices
-      </span>
-    </div>
-
-    <div className="mt-5 grid gap-3 sm:grid-cols-2">
-      {sosRecommendations.map((asana) => (
-        <Link
-          key={asana.id}
-          to={`/asanas/${asana.id}`}
-          className="group rounded-2xl border border-gray-100 p-4 transition hover:-translate-y-0.5 hover:border-green-200 hover:shadow-sm"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-semibold text-green-700">
-                {asana.sanskrit_name}
+              <p className="mt-3 text-center text-xs text-gray-400">
+                Modify or skip movements whenever something doesn't feel right.
               </p>
 
-              <h4 className="mt-1 font-bold">
-                {asana.name}
-              </h4>
-            </div>
+              {sosError && (
+                <div className="mt-6 rounded-2xl border border-red-100 bg-red-50 p-5 text-sm text-red-600">
+                  {sosError}
+                </div>
+              )}
 
-            <span className="text-lg transition group-hover:translate-x-1">
-              →
-            </span>
-          </div>
+              {!sosLoading && sosRecommendations.length > 0 && (
+                <div className="mt-6 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-green-700">
+                        Your FlowState Reset
+                      </p>
 
-          <p className="mt-2 text-xs leading-5 text-gray-500">
-            {asana.short_description}
-          </p>
+                      <h3 className="mt-1 text-xl font-bold">
+                        A practice for how you're feeling
+                      </h3>
+                    </div>
 
-          <div className="mt-3 flex gap-2 text-[10px] font-medium text-gray-500">
-            <span>{asana.category}</span>
-            <span>•</span>
-            <span>{asana.difficulty}</span>
-          </div>
-        </Link>
-      ))}
-    </div>
-  </div>
-)}
+                    <span className="rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-700">
+                      {sosRecommendations.length} practices
+                    </span>
+                  </div>
+
+                  <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                    {sosRecommendations.map((asana) => (
+                      <Link
+                        key={asana.id}
+                        to={`/asanas/${asana.id}`}
+                        className="group rounded-2xl border border-gray-100 p-4 transition hover:-translate-y-0.5 hover:border-green-200 hover:shadow-sm"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-xs font-semibold text-green-700">
+                              {asana.sanskrit_name}
+                            </p>
+
+                            <h4 className="mt-1 font-bold">
+                              {asana.name}
+                            </h4>
+                          </div>
+
+                          <span className="text-lg transition group-hover:translate-x-1">
+                            →
+                          </span>
+                        </div>
+
+                        <p className="mt-2 text-xs leading-5 text-gray-500">
+                          {asana.short_description}
+                        </p>
+
+                        <div className="mt-3 flex gap-2 text-[10px] font-medium text-gray-500">
+                          <span>{asana.category}</span>
+                          <span>•</span>
+                          <span>{asana.difficulty}</span>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <p className="mt-3 text-center text-xs text-gray-400">
                 Modify or skip movements whenever something doesn't feel right.
@@ -439,6 +437,119 @@ function Yoga() {
             </div>
           </div>
         </div>
+        {/* =====================================================
+    SOS RECOMMENDATIONS
+====================================================== */}
+
+        {sosLoading && (
+          <div className="mx-auto mt-5 max-w-7xl rounded-3xl bg-white p-8 text-center shadow-sm ring-1 ring-gray-100">
+            <div className="text-4xl">🧘</div>
+
+            <h3 className="mt-3 text-lg font-bold">
+              Creating your FlowState practice...
+            </h3>
+
+            <p className="mt-1 text-sm text-gray-500">
+              Finding movements that match how you feel.
+            </p>
+          </div>
+        )}
+
+        {sosError && (
+          <div className="mx-auto mt-5 max-w-7xl rounded-3xl border border-red-100 bg-red-50 p-6 text-center">
+            <p className="text-sm font-medium text-red-600">
+              {sosError}
+            </p>
+          </div>
+        )}
+
+        {!sosLoading && sosRecommendations.length > 0 && (
+          <div className="mx-auto mt-5 max-w-7xl rounded-3xl bg-white p-6 shadow-sm ring-1 ring-gray-100 sm:p-7">
+
+            {/* Header */}
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <span className="text-xs font-semibold uppercase tracking-wider text-green-700">
+                  Personalized Practice
+                </span>
+
+                <h3 className="mt-1 text-2xl font-bold">
+                  Your FlowState Reset
+                </h3>
+
+                <p className="mt-1 text-sm text-gray-500">
+                  Based on how you're feeling right now.
+                </p>
+              </div>
+
+              <span className="w-fit rounded-full bg-green-50 px-3 py-1.5 text-xs font-semibold text-green-700">
+                {sosRecommendations.length} practices
+              </span>
+            </div>
+
+            {/* Recommended Asanas */}
+            <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {sosRecommendations.map((asana) => (
+                <Link
+                  key={asana.id}
+                  to={`/asanas/${asana.id}`}
+                  className="group rounded-2xl border border-gray-100 bg-gray-50 p-4 transition hover:-translate-y-1 hover:border-green-200 hover:bg-white hover:shadow-md"
+                >
+                  <div className="flex items-start justify-between gap-3">
+
+                    <div>
+                      <p className="text-xs font-semibold text-green-700">
+                        {asana.sanskrit_name}
+                      </p>
+
+                      <h4 className="mt-1 text-base font-bold text-gray-900">
+                        {asana.name}
+                      </h4>
+                    </div>
+
+                    <span className="text-lg text-green-700 transition group-hover:translate-x-1">
+                      →
+                    </span>
+                  </div>
+
+                  <p className="mt-2 line-clamp-2 text-xs leading-5 text-gray-500">
+                    {asana.short_description}
+                  </p>
+
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-medium text-gray-500">
+                      {asana.category}
+                    </span>
+
+                    <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-medium text-gray-500">
+                      {asana.difficulty}
+                    </span>
+
+                    {asana.duration_seconds && (
+                      <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-medium text-gray-500">
+                        {asana.duration_seconds >= 60
+                          ? `${Math.floor(asana.duration_seconds / 60)} min`
+                          : `${asana.duration_seconds} sec`}
+                      </span>
+                    )}
+                  </div>
+                </Link>
+              ))}
+            </div>
+
+            {/* Start practice message */}
+            <div className="mt-5 rounded-2xl bg-green-50 px-4 py-3">
+              <p className="text-xs leading-5 text-gray-600">
+                <span className="font-semibold text-green-800">
+                  Your practice, your pace.
+                </span>{" "}
+                Choose any movement above to explore its instructions,
+                benefits, modifications, and safety guidance.
+              </p>
+            </div>
+
+          </div>
+        )}
       </section>
 
       {/* =====================================================
