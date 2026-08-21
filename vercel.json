@@ -6,7 +6,7 @@
     },
     "backend": {
       "root": "backend",
-      "entrypoint": "wsgi.py"
+      "entrypoint": "config/wsgi.py"
     }
   },
   "rewrites": [
