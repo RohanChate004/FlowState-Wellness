@@ -6,7 +6,8 @@
     },
     "backend": {
       "root": "backend",
-      "entrypoint": "config/wsgi.py"
+      "entrypoint": "config/wsgi.py",
+      "installCommand": "pip install -r requirements.txt"
     }
   },
   "rewrites": [
