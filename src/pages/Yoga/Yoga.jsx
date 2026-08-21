@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Navbar from "../../components/Navbar/Navbar";
 
 const API_BASE = "http://127.0.0.1:8000/api/yoga";
@@ -108,6 +108,7 @@ const programs = [
 ];
 
 function Yoga() {
+  const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState("sos");
 
   const [selectedFeeling, setSelectedFeeling] = useState(null);
@@ -288,17 +289,11 @@ function Yoga() {
   };
 
   const startCyclePractice = () => {
-    const recommendations =
-      document.getElementById(
-        "cycle-recommendations"
-      );
+    if (!selectedCyclePhase) return;
 
-    if (recommendations) {
-      recommendations.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-    }
+    navigate(
+      `/cycle-practice/${selectedCyclePhase.slug}`
+    );
   };
 
   const getCycleUI = (slug) =>
@@ -393,11 +388,10 @@ function Yoga() {
                       onClick={() =>
                         scrollToSection(item.id)
                       }
-                      className={`flex shrink-0 items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold transition ${
-                        activeSection === item.id
+                      className={`flex shrink-0 items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold transition ${activeSection === item.id
                           ? "bg-green-700 text-white shadow-sm"
                           : "bg-gray-50 text-gray-600 hover:bg-green-50 hover:text-green-700"
-                      }`}
+                        }`}
                     >
                       <span>{item.icon}</span>
                       {item.label}
@@ -518,11 +512,10 @@ function Yoga() {
                       setSosRecommendations([]);
                       setSosError("");
                     }}
-                    className={`rounded-2xl border p-3.5 text-left transition ${
-                      selectedFeeling === feeling.value
+                    className={`rounded-2xl border p-3.5 text-left transition ${selectedFeeling === feeling.value
                         ? "border-green-500 bg-green-50 ring-2 ring-green-100"
                         : "border-gray-200 bg-gray-50 hover:border-green-300 hover:bg-green-50"
-                    }`}
+                      }`}
                   >
                     <div className="flex items-center gap-3">
                       <span className="text-xl">
@@ -541,10 +534,10 @@ function Yoga() {
 
                       {selectedFeeling ===
                         feeling.value && (
-                        <span className="ml-auto text-green-700">
-                          ✓
-                        </span>
-                      )}
+                          <span className="ml-auto text-green-700">
+                            ✓
+                          </span>
+                        )}
                     </div>
                   </button>
                 ))}
@@ -557,22 +550,20 @@ function Yoga() {
                 disabled={
                   !selectedFeeling || sosLoading
                 }
-                className={`mt-5 w-full rounded-full px-5 py-3.5 text-sm font-semibold transition ${
-                  selectedFeeling && !sosLoading
+                className={`mt-5 w-full rounded-full px-5 py-3.5 text-sm font-semibold transition ${selectedFeeling && !sosLoading
                     ? "bg-green-700 text-white shadow-sm hover:bg-green-800"
                     : "cursor-not-allowed bg-gray-200 text-gray-400"
-                }`}
+                  }`}
               >
                 {sosLoading
                   ? "Creating Your Practice..."
                   : selectedFeeling
-                    ? `Continue With ${
-                        feelings.find(
-                          (item) =>
-                            item.value ===
-                            selectedFeeling
-                        )?.title
-                      } →`
+                    ? `Continue With ${feelings.find(
+                      (item) =>
+                        item.value ===
+                        selectedFeeling
+                    )?.title
+                    } →`
                     : "Select How You're Feeling →"}
               </button>
 
@@ -699,11 +690,11 @@ function Yoga() {
                               {asana.duration_seconds && (
                                 <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-medium text-gray-500">
                                   {asana.duration_seconds >=
-                                  60
+                                    60
                                     ? `${Math.floor(
-                                        asana.duration_seconds /
-                                          60
-                                      )} min`
+                                      asana.duration_seconds /
+                                      60
+                                    )} min`
                                     : `${asana.duration_seconds} sec`}
                                 </span>
                               )}
@@ -794,11 +785,10 @@ function Yoga() {
                     onClick={() =>
                       setSelectedCyclePhase(phase)
                     }
-                    className={`group rounded-3xl border p-5 text-left shadow-sm transition ${
-                      isSelected
+                    className={`group rounded-3xl border p-5 text-left shadow-sm transition ${isSelected
                         ? `${ui.selected} shadow-md`
                         : "border-gray-100 bg-white hover:-translate-y-1 hover:border-green-200 hover:shadow-md"
-                    }`}
+                      }`}
                   >
                     <div className="flex items-center justify-between">
                       <div
@@ -929,139 +919,12 @@ function Yoga() {
 
               {/* RECOMMENDATIONS */}
 
-              <div
-                id="cycle-recommendations"
-                className="p-6 sm:p-7"
+              <button
+                onClick={startCyclePractice}
+                className="mt-6 rounded-full bg-green-700 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-green-800"
               >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-green-700">
-                      Recommended Asanas
-                    </p>
-
-                    <h4 className="mt-1 text-lg font-bold">
-                      Move with the phase.
-                    </h4>
-                  </div>
-
-                  <span className="hidden text-xs text-gray-400 sm:block">
-                    {
-                      selectedCyclePhase
-                        .recommendations
-                        .filter(
-                          (item) =>
-                            item.is_active
-                        ).length
-                    }{" "}
-                    available
-                  </span>
-                </div>
-
-                <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {selectedCyclePhase.recommendations
-                    .filter(
-                      (recommendation) =>
-                        recommendation.is_active
-                    )
-                    .map((recommendation) => (
-                      <Link
-                        key={recommendation.id}
-                        to={`/asanas/${recommendation.asana.id}`}
-                        className="group rounded-2xl border border-gray-100 bg-gray-50 p-4 transition hover:-translate-y-1 hover:border-green-200 hover:bg-white hover:shadow-md"
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <p className="text-xs font-semibold text-green-700">
-                              {
-                                recommendation
-                                  .asana
-                                  .sanskrit_name
-                              }
-                            </p>
-
-                            <h4 className="mt-1 font-bold">
-                              {
-                                recommendation
-                                  .asana.name
-                              }
-                            </h4>
-                          </div>
-
-                          <span className="text-lg text-green-700 transition group-hover:translate-x-1">
-                            →
-                          </span>
-                        </div>
-
-                        <p className="mt-2 line-clamp-2 text-xs leading-5 text-gray-500">
-                          {
-                            recommendation
-                              .asana
-                              .short_description
-                          }
-                        </p>
-
-                        <div className="mt-4 flex flex-wrap gap-2">
-                          <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-medium text-gray-500">
-                            {
-                              recommendation
-                                .asana
-                                .category
-                            }
-                          </span>
-
-                          <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-medium text-gray-500">
-                            {
-                              recommendation
-                                .asana
-                                .difficulty
-                            }
-                          </span>
-
-                          <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-medium text-gray-500">
-                            {recommendation.duration_seconds >=
-                            60
-                              ? `${Math.floor(
-                                  recommendation.duration_seconds /
-                                    60
-                                )} min`
-                              : `${recommendation.duration_seconds} sec`}
-                          </span>
-                        </div>
-                      </Link>
-                    ))}
-                </div>
-
-                {/* GUIDANCE */}
-
-                {selectedCyclePhase.safety_guidance && (
-                  <div className="mt-6 rounded-2xl bg-green-50 p-4">
-                    <div className="flex gap-3">
-                      <span className="text-lg">
-                        🛡️
-                      </span>
-
-                      <div>
-                        <p className="text-xs font-semibold text-green-800">
-                          Practice guidance
-                        </p>
-
-                        <p className="mt-1 text-xs leading-5 text-gray-600">
-                          {
-                            selectedCyclePhase.safety_guidance
-                          }
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                <button
-                  onClick={startCyclePractice}
-                  className="mt-6 rounded-full bg-green-700 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-green-800"
-                >
-                  Start This Practice →
-                </button>
-              </div>
+                Start This Practice →
+              </button>
             </div>
           )}
         </div>
