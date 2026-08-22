@@ -150,3 +150,87 @@ class CycleRecommendation(models.Model):
 
     def __str__(self):
         return f"{self.cycle_phase.name} - {self.asana.name}"
+
+
+class DeepDiveFocus(models.Model):
+    title = models.CharField(
+        max_length=100,
+        unique=True,
+    )
+
+    slug = models.SlugField(
+        max_length=100,
+        unique=True,
+    )
+
+    short_description = models.TextField()
+
+    description = models.TextField()
+
+    energy_context = models.CharField(
+        max_length=100,
+        blank=True,
+    )
+
+    practice_style = models.CharField(
+        max_length=100,
+    )
+
+    duration_minutes = models.PositiveIntegerField(
+        default=30,
+    )
+
+    guidance = models.TextField(
+        blank=True,
+    )
+
+    is_active = models.BooleanField(
+        default=True,
+    )
+
+    class Meta:
+        ordering = ["id"]
+
+    def __str__(self):
+        return self.title
+
+class DeepDiveRecommendation(models.Model):
+    deep_dive = models.ForeignKey(
+        DeepDiveFocus,
+        on_delete=models.CASCADE,
+        related_name="recommendations",
+    )
+
+    asana = models.ForeignKey(
+        Asana,
+        on_delete=models.CASCADE,
+        related_name="deep_dive_recommendations",
+    )
+
+    priority = models.PositiveIntegerField(
+        default=1,
+    )
+
+    duration_seconds = models.PositiveIntegerField(
+        default=60,
+    )
+
+    guidance_note = models.TextField(
+        blank=True,
+    )
+
+    is_active = models.BooleanField(
+        default=True,
+    )
+
+    class Meta:
+        ordering = ["priority", "id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["deep_dive", "asana"],
+                name="unique_deep_dive_asana",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.deep_dive.title} - {self.asana.name}"

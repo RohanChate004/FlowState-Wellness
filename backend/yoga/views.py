@@ -7,11 +7,13 @@ from .serializers import AsanaSerializer
 from .models import (
     Asana,
     CyclePhase,
+    DeepDiveFocus,
 )
 
 from .serializers import (
     AsanaSerializer,
     CyclePhaseSerializer,
+    DeepDiveFocusSerializer,
 )
 
 
@@ -194,3 +196,26 @@ class CyclePhaseDetailView(generics.RetrieveAPIView):
         return CyclePhase.objects.prefetch_related(
             "recommendations__asana"
         ).all()
+
+
+class DeepDiveFocusListView(generics.ListAPIView):
+    serializer_class = DeepDiveFocusSerializer
+
+    def get_queryset(self):
+        return DeepDiveFocus.objects.filter(
+            is_active=True
+        ).prefetch_related(
+            "recommendations__asana"
+        )
+
+
+class DeepDiveFocusDetailView(generics.RetrieveAPIView):
+    serializer_class = DeepDiveFocusSerializer
+    lookup_field = "slug"
+
+    def get_queryset(self):
+        return DeepDiveFocus.objects.filter(
+            is_active=True
+        ).prefetch_related(
+            "recommendations__asana"
+        )

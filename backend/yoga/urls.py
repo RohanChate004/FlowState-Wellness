@@ -6,6 +6,8 @@ from .views import (
     SOSRecommendationView,
     CyclePhaseListView,
     CyclePhaseDetailView,
+    DeepDiveFocusListView,
+    DeepDiveFocusDetailView,
 )
 
 
@@ -38,5 +40,17 @@ urlpatterns = [
         "cycle-phases/<slug:slug>/",
         CyclePhaseDetailView.as_view(),
         name="cycle-phase-detail",
+    ),
+
+    path(
+        "deep-dives/",
+        DeepDiveFocusListView.as_view(),
+        name="deep-dive-list",
+    ),
+
+    path(
+        "deep-dives/<slug:slug>/",
+        DeepDiveFocusDetailView.as_view(),
+        name="deep-dive-detail",
     ),
 ]

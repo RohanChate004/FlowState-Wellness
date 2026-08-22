@@ -3,6 +3,8 @@ from .models import (
     Asana,
     CyclePhase,
     CycleRecommendation,
+    DeepDiveFocus,
+    DeepDiveRecommendation,
 )
 
 
@@ -62,5 +64,42 @@ class CyclePhaseSerializer(serializers.ModelSerializer):
             "intensity",
             "duration_minutes",
             "safety_guidance",
+            "recommendations",
+        ]
+
+class DeepDiveRecommendationSerializer(serializers.ModelSerializer):
+    asana = AsanaSerializer(read_only=True)
+
+    class Meta:
+        model = DeepDiveRecommendation
+        fields = [
+            "id",
+            "asana",
+            "priority",
+            "duration_seconds",
+            "guidance_note",
+            "is_active",
+        ]
+
+
+class DeepDiveFocusSerializer(serializers.ModelSerializer):
+    recommendations = DeepDiveRecommendationSerializer(
+        many=True,
+        read_only=True,
+    )
+
+    class Meta:
+        model = DeepDiveFocus
+        fields = [
+            "id",
+            "title",
+            "slug",
+            "short_description",
+            "description",
+            "energy_context",
+            "practice_style",
+            "duration_minutes",
+            "guidance",
+            "is_active",
             "recommendations",
         ]

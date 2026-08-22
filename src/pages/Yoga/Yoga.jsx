@@ -77,6 +77,41 @@ const cyclePhaseUI = {
   },
 };
 
+const deepDiveFocuses = [
+  {
+    slug: "stress-calm",
+    icon: "🌿",
+    title: "Stress & Calm",
+    description:
+      "Slow down, release tension, and create space for calmer movement and breathing.",
+    category: "Mental Wellness",
+  },
+  {
+    slug: "back-body-relief",
+    icon: "🧍",
+    title: "Back & Body Relief",
+    description:
+      "Explore gentle movement and mobility for stiffness, tension, and everyday body discomfort.",
+    category: "Physical Recovery",
+  },
+  {
+    slug: "energy-focus",
+    icon: "⚡",
+    title: "Energy & Focus",
+    description:
+      "Refresh your body and mind with movement designed to help you feel more awake and present.",
+    category: "Energy & Clarity",
+  },
+  {
+    slug: "better-sleep",
+    icon: "🌙",
+    title: "Better Sleep",
+    description:
+      "Ease into a slower rhythm with gentle practices that support rest and relaxation.",
+    category: "Rest & Recovery",
+  },
+];
+
 const programs = [
   {
     title: "7-Day Beginner Flow",
@@ -389,8 +424,8 @@ function Yoga() {
                         scrollToSection(item.id)
                       }
                       className={`flex shrink-0 items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold transition ${activeSection === item.id
-                          ? "bg-green-700 text-white shadow-sm"
-                          : "bg-gray-50 text-gray-600 hover:bg-green-50 hover:text-green-700"
+                        ? "bg-green-700 text-white shadow-sm"
+                        : "bg-gray-50 text-gray-600 hover:bg-green-50 hover:text-green-700"
                         }`}
                     >
                       <span>{item.icon}</span>
@@ -513,8 +548,8 @@ function Yoga() {
                       setSosError("");
                     }}
                     className={`rounded-2xl border p-3.5 text-left transition ${selectedFeeling === feeling.value
-                        ? "border-green-500 bg-green-50 ring-2 ring-green-100"
-                        : "border-gray-200 bg-gray-50 hover:border-green-300 hover:bg-green-50"
+                      ? "border-green-500 bg-green-50 ring-2 ring-green-100"
+                      : "border-gray-200 bg-gray-50 hover:border-green-300 hover:bg-green-50"
                       }`}
                   >
                     <div className="flex items-center gap-3">
@@ -551,8 +586,8 @@ function Yoga() {
                   !selectedFeeling || sosLoading
                 }
                 className={`mt-5 w-full rounded-full px-5 py-3.5 text-sm font-semibold transition ${selectedFeeling && !sosLoading
-                    ? "bg-green-700 text-white shadow-sm hover:bg-green-800"
-                    : "cursor-not-allowed bg-gray-200 text-gray-400"
+                  ? "bg-green-700 text-white shadow-sm hover:bg-green-800"
+                  : "cursor-not-allowed bg-gray-200 text-gray-400"
                   }`}
               >
                 {sosLoading
@@ -786,8 +821,8 @@ function Yoga() {
                       setSelectedCyclePhase(phase)
                     }
                     className={`group rounded-3xl border p-5 text-left shadow-sm transition ${isSelected
-                        ? `${ui.selected} shadow-md`
-                        : "border-gray-100 bg-white hover:-translate-y-1 hover:border-green-200 hover:shadow-md"
+                      ? `${ui.selected} shadow-md`
+                      : "border-gray-100 bg-white hover:-translate-y-1 hover:border-green-200 hover:shadow-md"
                       }`}
                   >
                     <div className="flex items-center justify-between">
@@ -933,77 +968,134 @@ function Yoga() {
       {/* =====================================================
           DEEP DIVE
       ====================================================== */}
-
       <section
         id="deep-dive"
-        className="scroll-mt-28 px-4 py-6 sm:px-6 lg:px-10"
+        className="scroll-mt-28 px-4 py-10 sm:px-6 lg:px-10"
       >
-        <div className="mx-auto max-w-7xl overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-gray-100">
-          <div className="grid lg:grid-cols-2">
+        <div className="mx-auto max-w-7xl">
 
-            <div className="p-6 sm:p-8 lg:p-10">
-              <span className="text-xs font-semibold uppercase tracking-wider text-green-700">
-                Extended Practice
-              </span>
+          <div className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-gray-100">
 
-              <h2 className="mt-2 text-2xl font-bold sm:text-3xl">
-                Go deeper with your practice.
-              </h2>
+            <div className="grid lg:grid-cols-[1.2fr_0.8fr]">
 
-              <p className="mt-3 max-w-xl text-sm leading-7 text-gray-600">
-                When you have more time, explore longer
-                practices focused on mobility, strength,
-                recovery, breathwork, and mindful movement.
-              </p>
+              {/* LEFT CONTENT */}
 
-              <div className="mt-6 grid grid-cols-2 gap-3">
-                {[
-                  ["⏱", "60–120 min", "Extended practice"],
-                  ["🧘", "Full Body", "Connected movement"],
-                  ["🌬", "Breathwork", "Mindful breathing"],
-                  ["🌿", "Recovery", "Deeper exploration"],
-                ].map(([icon, title, text]) => (
-                  <div
-                    key={title}
-                    className="rounded-2xl bg-green-50 p-4"
-                  >
-                    <p className="text-sm font-bold">
-                      {icon} {title}
-                    </p>
+              <div className="p-6 sm:p-8 lg:p-10">
 
-                    <p className="mt-1 text-xs text-gray-500">
-                      {text}
-                    </p>
+                <span className="inline-flex rounded-full bg-green-50 px-3 py-1.5 text-xs font-semibold text-green-700">
+                  🌿 Focused Wellness
+                </span>
+
+                <h2 className="mt-4 text-3xl font-bold tracking-tight sm:text-4xl">
+                  Go deeper into what matters to you.
+                </h2>
+
+                <p className="mt-4 max-w-2xl text-sm leading-7 text-gray-600 sm:text-base">
+                  Explore focused yoga practices designed around how
+                  you feel right now. Whether you need calm, relief,
+                  energy, or better rest, choose a deeper practice
+                  that supports your well-being.
+                </p>
+
+                {/* WELLNESS AREAS */}
+
+                <div className="mt-8 grid gap-3 sm:grid-cols-2">
+
+                  {deepDiveFocuses.map((focus) => (
+                    <div
+                      key={focus.slug}
+                      className="rounded-2xl bg-stone-50 p-4 transition hover:bg-green-50"
+                    >
+                      <div className="flex items-center gap-3">
+
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-xl shadow-sm">
+                          {focus.icon}
+                        </div>
+
+                        <div>
+                          <h3 className="font-bold text-gray-900">
+                            {focus.title}
+                          </h3>
+
+                          <p className="mt-1 text-xs leading-5 text-gray-500">
+                            {focus.description}
+                          </p>
+                        </div>
+
+                      </div>
+                    </div>
+                  ))}
+
+                </div>
+
+                {/* SINGLE BUTTON */}
+
+                <button
+                  onClick={() => navigate("/deep-dive")}
+                  className="mt-8 rounded-full bg-green-700 px-7 py-3 text-sm font-semibold text-white transition hover:bg-green-800 hover:shadow-lg"
+                >
+                  Explore Deep Practice →
+                </button>
+
+              </div>
+
+              {/* RIGHT SIDE */}
+
+              <div className="flex items-center bg-green-50 p-6 sm:p-8 lg:p-10">
+
+                <div className="w-full rounded-3xl bg-white p-6 shadow-sm">
+
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-green-50 text-3xl">
+                    🧘
                   </div>
-                ))}
+
+                  <p className="mt-6 text-xs font-semibold uppercase tracking-wider text-green-700">
+                    Deep Dive
+                  </p>
+
+                  <h3 className="mt-2 text-2xl font-bold">
+                    More focus. More intention.
+                  </h3>
+
+                  <p className="mt-3 text-sm leading-6 text-gray-600">
+                    Take a little more time for yourself with guided
+                    yoga sessions designed around different wellness
+                    goals.
+                  </p>
+
+                  <div className="mt-6 space-y-3">
+
+                    <div className="flex items-center gap-3 text-sm text-gray-600">
+                      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-green-50 text-green-700">
+                        ✓
+                      </span>
+                      Focused wellness sessions
+                    </div>
+
+                    <div className="flex items-center gap-3 text-sm text-gray-600">
+                      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-green-50 text-green-700">
+                        ✓
+                      </span>
+                      Move at your own pace
+                    </div>
+
+                    <div className="flex items-center gap-3 text-sm text-gray-600">
+                      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-green-50 text-green-700">
+                        ✓
+                      </span>
+                      Practice with intention
+                    </div>
+
+                  </div>
+
+                </div>
+
               </div>
 
-              <button className="mt-6 rounded-full bg-green-700 px-6 py-3 text-sm font-semibold text-white transition hover:bg-green-800">
-                Explore Deep Practice →
-              </button>
             </div>
 
-            <div className="relative min-h-72">
-              <img
-                src="https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1000&q=85"
-                alt="Extended yoga practice"
-                className="absolute inset-0 h-full w-full object-cover"
-              />
-
-              <div className="absolute inset-0 bg-black/10" />
-
-              <div className="absolute bottom-4 left-4 right-4 rounded-2xl bg-white/90 p-4 backdrop-blur-sm">
-                <p className="text-sm font-semibold text-green-700">
-                  Take your time.
-                </p>
-
-                <p className="mt-1 text-xs leading-5 text-gray-600">
-                  Longer practice doesn't mean more pressure.
-                  Move at a pace that feels appropriate for you.
-                </p>
-              </div>
-            </div>
           </div>
+
         </div>
       </section>
 
@@ -1011,7 +1103,7 @@ function Yoga() {
           DAILY PRACTICE
       ====================================================== */}
 
-      <section
+      < section
         id="daily"
         className="scroll-mt-28 px-4 py-8 sm:px-6 lg:px-10"
       >
@@ -1053,13 +1145,13 @@ function Yoga() {
             </div>
           </div>
         </div>
-      </section>
+      </section >
 
       {/* =====================================================
           ASANA ENCYCLOPEDIA
       ====================================================== */}
 
-      <section
+      < section
         id="asanas"
         className="scroll-mt-28 px-4 py-8 sm:px-6 lg:px-10"
       >
@@ -1232,13 +1324,13 @@ function Yoga() {
             )}
           </div>
         </div>
-      </section>
+      </section >
 
       {/* =====================================================
           PROGRAMS
       ====================================================== */}
 
-      <section
+      < section
         id="programs"
         className="scroll-mt-28 px-4 py-8 sm:px-6 lg:px-10"
       >
@@ -1300,13 +1392,13 @@ function Yoga() {
             ))}
           </div>
         </div>
-      </section>
+      </section >
 
       {/* =====================================================
           MATERNITY
       ====================================================== */}
 
-      <section className="px-4 py-8 sm:px-6 lg:px-10">
+      < section className="px-4 py-8 sm:px-6 lg:px-10" >
         <div className="mx-auto max-w-7xl rounded-3xl bg-stone-100 p-6 sm:p-8">
 
           <div className="flex flex-col gap-7 lg:flex-row lg:items-center">
@@ -1384,13 +1476,13 @@ function Yoga() {
             </div>
           </div>
         </div>
-      </section>
+      </section >
 
       {/* =====================================================
           SAFETY
       ====================================================== */}
 
-      <section className="px-4 py-8 sm:px-6 lg:px-10">
+      < section className="px-4 py-8 sm:px-6 lg:px-10" >
         <div className="mx-auto max-w-7xl">
 
           <div className="mb-6">
@@ -1457,13 +1549,13 @@ function Yoga() {
             </p>
           </div>
         </div>
-      </section>
+      </section >
 
       {/* =====================================================
           WHY FLOWSTATE
       ====================================================== */}
 
-      <section className="px-4 py-8 sm:px-6 lg:px-10">
+      < section className="px-4 py-8 sm:px-6 lg:px-10" >
         <div className="mx-auto max-w-7xl rounded-3xl bg-green-50 p-6 sm:p-8">
 
           <div className="mx-auto max-w-2xl text-center">
@@ -1564,13 +1656,13 @@ function Yoga() {
             ))}
           </div>
         </div>
-      </section>
+      </section >
 
       {/* =====================================================
           FINAL CTA
       ====================================================== */}
 
-      <section className="px-4 py-8 sm:px-6 lg:px-10">
+      < section className="px-4 py-8 sm:px-6 lg:px-10" >
         <div className="mx-auto max-w-7xl rounded-3xl bg-green-700 px-6 py-10 text-center text-white shadow-lg sm:px-8">
 
           <div className="mx-auto max-w-2xl">
@@ -1597,13 +1689,13 @@ function Yoga() {
             </button>
           </div>
         </div>
-      </section>
+      </section >
 
       {/* =====================================================
           FOOTER
       ====================================================== */}
 
-      <footer className="mt-4 bg-gray-900 text-gray-300">
+      < footer className="mt-4 bg-gray-900 text-gray-300" >
         <div className="mx-auto max-w-7xl px-6 py-10 sm:px-8 lg:px-10">
 
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
@@ -1687,8 +1779,8 @@ function Yoga() {
             </p>
           </div>
         </div>
-      </footer>
-    </div>
+      </footer >
+    </div >
   );
 }
 

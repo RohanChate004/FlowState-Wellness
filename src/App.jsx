@@ -9,11 +9,13 @@ import ProtectedRoute from "./components/ProtectedRoute/ProtectedRoute";
 import AsanaDetails from "./pages/AsanaDetails/AsanaDetails";
 import CyclePractice from "./pages/CyclePractice/CyclePractice";
 
+import DeepDive from "./pages/DeepDive/DeepDive";
+import DeepDiveSession from "./pages/DeepDive/DeepDiveSession";
+
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-
         <Route path="/" element={<Home />} />
 
         <Route path="/login" element={<Login />} />
@@ -39,6 +41,18 @@ function App() {
         <Route
           path="/cycle-practice/:slug"
           element={<CyclePractice />}
+        />
+
+        {/* DEEP DIVE */}
+
+        <Route
+          path="/deep-dive"
+          element={<DeepDive />}
+        />
+
+        <Route
+          path="/deep-dive/session/:id"
+          element={<DeepDiveSession />}
         />
       </Routes>
     </BrowserRouter>
