@@ -1,140 +1,182 @@
 import { useState } from "react";
+import { useLocation } from "react-router-dom";
 
 function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
-    const isLoggedIn = !!localStorage.getItem("accessToken");
+  const isLoggedIn = !!localStorage.getItem("accessToken");
+  const location = useLocation();
+
+  // Apply the special dark theme only inside Knowledge Hub
+  const isKnowledgeHub = location.pathname.startsWith("/knowledge-hub");
+
+  const navLinkClass = isKnowledgeHub
+    ? "text-slate-300 hover:text-amber-300 transition duration-300"
+    : "text-gray-700 hover:text-green-600 transition";
 
   return (
-    <nav className="bg-white border-b border-gray-100 sticky top-0 z-50">
-
-      <div className="max-w-7xl mx-auto px-6">
-
-        <div className="h-20 flex items-center justify-between">
-
+    <nav
+      className={
+        isKnowledgeHub
+          ? "sticky top-0 z-50 border-b border-white/10 bg-[#070b14]/80 backdrop-blur-xl"
+          : "sticky top-0 z-50 border-b border-gray-100 bg-white"
+      }
+    >
+      <div className="mx-auto max-w-7xl px-6">
+        <div className="flex h-20 items-center justify-between">
           {/* Logo */}
           <a href="/" className="flex items-center gap-2">
-
-            <div className="w-9 h-9 bg-green-50 rounded-xl flex items-center justify-center">
+            <div
+              className={
+                isKnowledgeHub
+                  ? "flex h-9 w-9 items-center justify-center rounded-xl border border-amber-300/20 bg-amber-300/10 shadow-[0_0_25px_rgba(251,191,36,0.08)]"
+                  : "flex h-9 w-9 items-center justify-center rounded-xl bg-green-50"
+              }
+            >
               <span className="text-xl">🌿</span>
             </div>
 
             <span className="text-2xl font-bold tracking-tight">
-              <span className="text-gray-900">Flow</span>
-              <span className="text-green-600">State</span>
-            </span>
+              <span
+                className={
+                  isKnowledgeHub ? "text-white" : "text-gray-900"
+                }
+              >
+                Flow
+              </span>
 
+              <span
+                className={
+                  isKnowledgeHub ? "text-amber-300" : "text-green-600"
+                }
+              >
+                State
+              </span>
+            </span>
           </a>
 
-
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-8">
+          <div className="hidden items-center gap-8 md:flex">
+            <a href="/" className={navLinkClass}>
+              Home
+            </a>
 
-{/* Home */}
-<a
-  href="/"
-  className="text-gray-700 hover:text-green-600 transition"
->
-  Home
-</a>
+            {isLoggedIn && (
+              <a href="/dashboard" className={navLinkClass}>
+                Dashboard
+              </a>
+            )}
 
-           {isLoggedIn && (
-  <a
-    href="/dashboard"
-    className="text-gray-700 hover:text-green-600 transition"
-  >
-    Dashboard
-  </a>
-)}
-
-            <a
-              href="/yoga"
-              className="text-gray-700 hover:text-green-600 transition"
-            >
+            <a href="/yoga" className={navLinkClass}>
               Yoga
             </a>
 
-            <a
-              href="/meditation"
-              className="text-gray-700 hover:text-green-600 transition"
-            >
+            <a href="/meditation" className={navLinkClass}>
               Meditation
             </a>
 
             <a
               href="/knowledge-hub"
-              className="text-gray-700 hover:text-green-600 transition"
+              className={
+                isKnowledgeHub
+                  ? "rounded-full border border-amber-300/20 bg-amber-300/10 px-4 py-2 text-amber-200 shadow-[0_0_20px_rgba(251,191,36,0.06)] transition hover:bg-amber-300/15"
+                  : navLinkClass
+              }
             >
               Knowledge Hub
             </a>
 
-            <a
-              href="/ai-wellness"
-              className="text-gray-700 hover:text-green-600 transition"
-            >
+            <a href="/ai-wellness" className={navLinkClass}>
               AI Wellness
             </a>
 
-            <a
-              href="/contact"
-              className="text-gray-700 hover:text-green-600 transition"
-            >
+            <a href="/contact" className={navLinkClass}>
               Contact
             </a>
-
           </div>
-
 
           {/* Desktop Buttons */}
           {!isLoggedIn && (
-  <div className="hidden md:flex items-center gap-3">
+            <div className="hidden items-center gap-3 md:flex">
+              <a
+                href="/login"
+                className={
+                  isKnowledgeHub
+                    ? "rounded-xl border border-amber-300/30 px-5 py-2.5 font-medium text-amber-200 transition hover:bg-amber-300/10"
+                    : "rounded-xl border border-green-600 px-5 py-2.5 font-medium text-green-700 transition hover:bg-green-50"
+                }
+              >
+                Login
+              </a>
 
-    <a
-      href="/login"
-      className="px-5 py-2.5 rounded-xl border border-green-600 text-green-700 font-medium hover:bg-green-50 transition"
-    >
-      Login
-    </a>
-
-    <a
-      href="/signup"
-      className="px-5 py-2.5 rounded-xl bg-green-600 text-white font-medium hover:bg-green-700 transition"
-    >
-      Sign Up
-    </a>
-
-  </div>
-)}
-
+              <a
+                href="/signup"
+                className={
+                  isKnowledgeHub
+                    ? "rounded-xl bg-linear-to-r from-amber-300 to-yellow-500 px-5 py-2.5 font-medium text-[#1a1205] transition hover:scale-[1.02] hover:shadow-[0_0_25px_rgba(251,191,36,0.3)]"
+                    : "rounded-xl bg-green-600 px-5 py-2.5 font-medium text-white transition hover:bg-green-700"
+                }
+              >
+                Sign Up
+              </a>
+            </div>
+          )}
 
           {/* Mobile Menu Button */}
           <button
             onClick={() => setMenuOpen(!menuOpen)}
-            className="md:hidden w-10 h-10 rounded-xl border border-gray-200 flex items-center justify-center text-xl"
+            className={
+              isKnowledgeHub
+                ? "flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-xl text-amber-200"
+                : "flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 text-xl"
+            }
           >
             {menuOpen ? "✕" : "☰"}
           </button>
-
         </div>
-
 
         {/* Mobile Navigation */}
         {menuOpen && (
-          <div className="md:hidden border-t border-gray-100 py-5">
-
+          <div
+            className={
+              isKnowledgeHub
+                ? "border-t border-white/10 py-5 md:hidden"
+                : "border-t border-gray-100 py-5 md:hidden"
+            }
+          >
             <div className="flex flex-col gap-1">
-
-            {isLoggedIn && (
               <a
                 href="/"
-                className="px-4 py-3 rounded-lg text-green-700 bg-green-50 font-medium"
+                className={
+                  isKnowledgeHub
+                    ? "rounded-lg px-4 py-3 text-slate-300 hover:bg-white/5 hover:text-amber-200"
+                    : "rounded-lg px-4 py-3 text-gray-700 hover:bg-green-50"
+                }
                 onClick={() => setMenuOpen(false)}
               >
-                Dashboard
+                Home
               </a>
-            )}
+
+              {isLoggedIn && (
+                <a
+                  href="/dashboard"
+                  className={
+                    isKnowledgeHub
+                      ? "rounded-lg px-4 py-3 text-slate-300 hover:bg-white/5 hover:text-amber-200"
+                      : "rounded-lg px-4 py-3 text-gray-700 hover:bg-green-50"
+                  }
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Dashboard
+                </a>
+              )}
+
               <a
                 href="/yoga"
-                className="px-4 py-3 rounded-lg text-gray-700 hover:bg-green-50"
+                className={
+                  isKnowledgeHub
+                    ? "rounded-lg px-4 py-3 text-slate-300 hover:bg-white/5 hover:text-amber-200"
+                    : "rounded-lg px-4 py-3 text-gray-700 hover:bg-green-50"
+                }
                 onClick={() => setMenuOpen(false)}
               >
                 Yoga
@@ -142,7 +184,11 @@ function Navbar() {
 
               <a
                 href="/meditation"
-                className="px-4 py-3 rounded-lg text-gray-700 hover:bg-green-50"
+                className={
+                  isKnowledgeHub
+                    ? "rounded-lg px-4 py-3 text-slate-300 hover:bg-white/5 hover:text-amber-200"
+                    : "rounded-lg px-4 py-3 text-gray-700 hover:bg-green-50"
+                }
                 onClick={() => setMenuOpen(false)}
               >
                 Meditation
@@ -150,7 +196,11 @@ function Navbar() {
 
               <a
                 href="/knowledge-hub"
-                className="px-4 py-3 rounded-lg text-gray-700 hover:bg-green-50"
+                className={
+                  isKnowledgeHub
+                    ? "rounded-lg border border-amber-300/20 bg-amber-300/10 px-4 py-3 font-medium text-amber-200"
+                    : "rounded-lg px-4 py-3 text-gray-700 hover:bg-green-50"
+                }
                 onClick={() => setMenuOpen(false)}
               >
                 Knowledge Hub
@@ -158,7 +208,11 @@ function Navbar() {
 
               <a
                 href="/ai-wellness"
-                className="px-4 py-3 rounded-lg text-gray-700 hover:bg-green-50"
+                className={
+                  isKnowledgeHub
+                    ? "rounded-lg px-4 py-3 text-slate-300 hover:bg-white/5 hover:text-amber-200"
+                    : "rounded-lg px-4 py-3 text-gray-700 hover:bg-green-50"
+                }
                 onClick={() => setMenuOpen(false)}
               >
                 AI Wellness
@@ -166,44 +220,50 @@ function Navbar() {
 
               <a
                 href="/contact"
-                className="px-4 py-3 rounded-lg text-gray-700 hover:bg-green-50"
+                className={
+                  isKnowledgeHub
+                    ? "rounded-lg px-4 py-3 text-slate-300 hover:bg-white/5 hover:text-amber-200"
+                    : "rounded-lg px-4 py-3 text-gray-700 hover:bg-green-50"
+                }
                 onClick={() => setMenuOpen(false)}
               >
                 Contact
               </a>
 
-
               {/* Mobile Buttons */}
               {!isLoggedIn && (
-  <div className="flex gap-3 pt-3">
+                <div className="flex gap-3 pt-4">
+                  <a
+                    href="/login"
+                    className={
+                      isKnowledgeHub
+                        ? "rounded-xl border border-amber-300/30 px-5 py-2.5 font-medium text-amber-200"
+                        : "rounded-xl border border-green-600 px-5 py-2.5 font-medium text-green-700"
+                    }
+                  >
+                    Login
+                  </a>
 
-    <a
-      href="/login"
-      className="px-5 py-2.5 rounded-xl border border-green-600 text-green-700 font-medium hover:bg-green-50 transition"
-    >
-      Login
-    </a>
-
-    <a
-      href="/signup"
-      className="flex-1 text-center px-4 py-3 rounded-xl bg-green-600 text-white font-medium"
-      onClick={() => setMenuOpen(false)}
-    >
-      Sign Up
-    </a>
-
-  </div>
-)}
-
+                  <a
+                    href="/signup"
+                    className={
+                      isKnowledgeHub
+                        ? "flex-1 rounded-xl bg-linear-to-r from-amber-300 to-yellow-500 px-4 py-3 text-center font-medium text-[#1a1205]"
+                        : "flex-1 rounded-xl bg-green-600 px-4 py-3 text-center font-medium text-white"
+                    }
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    Sign Up
+                  </a>
+                </div>
+              )}
             </div>
-
           </div>
         )}
-
       </div>
-
     </nav>
   );
 }
 
 export default Navbar;
+
