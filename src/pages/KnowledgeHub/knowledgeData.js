@@ -166,6 +166,30 @@ export const articles = [
   },
 
   {
+    slug: "understanding-mudras",
+    category: "practices",
+    title: "Understanding Mudras",
+    description:
+      "Learn how traditional hand gestures are used to support focus, awareness and yogic practice.",
+    icon: "🤲",
+    readTime: "5 min read",
+    content: [
+      {
+        heading: "What is a Mudra?",
+        text: "Mudras are symbolic hand gestures used in yoga and meditation practices. They are traditionally practiced with awareness and are often connected with concentration and inner balance.",
+      },
+      {
+        heading: "Mudras in Practice",
+        text: "Different mudras are used in different practices. They may be combined with meditation, breathing practices or seated yoga to encourage focused attention.",
+      },
+      {
+        heading: "A Practice of Awareness",
+        text: "Mudras can be practiced gently and comfortably while maintaining awareness of the body, breath and mind. Their traditional meaning can vary across different yoga and spiritual traditions.",
+      },
+    ],
+  },
+
+  {
     slug: "yoga-sutras",
     category: "philosophy",
     title: "Yoga Sutras of Patanjali",
@@ -228,6 +252,54 @@ export const articles = [
       {
         heading: "A Search for Understanding",
         text: "These texts are often presented through dialogues, questions and philosophical inquiry.",
+      },
+    ],
+  },
+
+  {
+    slug: "understanding-mantras",
+    category: "sanskrit",
+    title: "Understanding Mantras",
+    description:
+      "Explore the meaning and role of sacred sounds and repeated phrases in traditional practices.",
+    icon: "🕉️",
+    readTime: "5 min read",
+    content: [
+      {
+        heading: "What is a Mantra?",
+        text: "A mantra is a sound, word or phrase that is traditionally repeated with focused attention. Mantra practice appears in several Indian spiritual and contemplative traditions.",
+      },
+      {
+        heading: "Sound and Concentration",
+        text: "Repeating a mantra can provide a point of focus during meditation. The rhythm and repetition can help bring attention back to the practice when the mind becomes distracted.",
+      },
+      {
+        heading: "The Meaning Behind Mantras",
+        text: "Many mantras are connected with Sanskrit words, traditional teachings and spiritual ideas. Understanding their context can add depth to the practice.",
+      },
+    ],
+  },
+
+  {
+    slug: "dinacharya-yogic-daily-routine",
+    category: "lifestyle",
+    title: "Dinacharya: A Yogic Daily Routine",
+    description:
+      "Discover the traditional idea of creating a balanced and mindful daily routine.",
+    icon: "☀️",
+    readTime: "6 min read",
+    content: [
+      {
+        heading: "What is Dinacharya?",
+        text: "Dinacharya is a traditional concept referring to a daily routine. In yogic and related wellness traditions, a thoughtful routine is viewed as a way to bring regularity and awareness into everyday life.",
+      },
+      {
+        heading: "Creating a Balanced Routine",
+        text: "A daily routine may include regular times for waking, personal care, movement, meals, work, rest and reflection. The goal is to create consistency while remaining attentive to individual needs.",
+      },
+      {
+        heading: "Mindfulness in Everyday Life",
+        text: "Dinacharya connects wellness with everyday habits. Simple routines practiced with awareness can encourage a more organized, balanced and mindful approach to daily living.",
       },
     ],
   },

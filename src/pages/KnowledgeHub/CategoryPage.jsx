@@ -1,4 +1,3 @@
-import { motion } from "motion/react";
 import { Link, useParams } from "react-router-dom";
 import Navbar from "../../components/Navbar/Navbar";
 import { articles, categories } from "./knowledgeData";
@@ -16,28 +15,28 @@ const CategoryPage = () => {
     (article) => article.category === categoryId
   );
 
-  // If category doesn't exist
+  // Category not found
   if (!category) {
     return (
-      <div className="min-h-screen bg-[#070b14] text-white">
+      <div className="min-h-screen bg-[#f8faf9] text-slate-800">
         <Navbar />
 
         <div className="flex min-h-[70vh] flex-col items-center justify-center px-4 text-center">
           <div className="text-5xl">🔍</div>
 
-          <h1 className="mt-5 text-3xl font-bold">
+          <h1 className="mt-4 text-3xl font-bold text-slate-900">
             Category not found
           </h1>
 
-          <p className="mt-3 text-slate-400">
+          <p className="mt-2 max-w-md text-slate-500">
             The knowledge category you are looking for does not exist.
           </p>
 
           <Link
             to="/knowledge-hub"
-            className="mt-6 rounded-xl bg-amber-300 px-5 py-3 font-semibold text-[#1a1205]"
+            className="mt-5 rounded-lg bg-emerald-600 px-5 py-3 text-sm font-semibold text-white hover:bg-emerald-700"
           >
-            Back to Knowledge Hub
+            ← Back to Knowledge Hub
           </Link>
         </div>
       </div>
@@ -45,166 +44,162 @@ const CategoryPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#070b14] text-white">
+    <div className="min-h-screen bg-[#f8faf9] text-slate-800">
       <Navbar />
 
-      {/* HERO */}
-      <section className="relative overflow-hidden border-b border-white/6 px-4 py-16 sm:px-6 sm:py-20 lg:px-10">
-        {/* Background glow */}
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute left-[15%] top-[10%] h-72 w-72 rounded-full bg-amber-400/6 blur-[130px]" />
+      {/* =====================================================
+          HERO
+      ====================================================== */}
+      <section className="border-b border-slate-200 bg-white px-4 py-10 sm:px-6 lg:px-10">
+        <div className="mx-auto max-w-5xl">
 
-          <div
-            className="absolute inset-0 opacity-[0.025]"
-            style={{
-              backgroundImage:
-                "linear-gradient(rgba(255,255,255,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.3) 1px, transparent 1px)",
-              backgroundSize: "70px 70px",
-            }}
-          />
-        </div>
-
-        <div className="relative z-10 mx-auto max-w-5xl">
-          {/* Back button */}
+          {/* Back */}
           <Link
             to="/knowledge-hub"
-            className="inline-flex items-center gap-2 text-sm text-slate-400 transition hover:text-amber-200"
+            className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-emerald-600"
           >
             ← Back to Knowledge Hub
           </Link>
 
-          <motion.div
-            initial={{ opacity: 0, y: 25 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="mt-10 max-w-3xl"
-          >
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-amber-300/20 bg-amber-300/[0.07] text-3xl">
+          <div className="mt-7 max-w-3xl">
+
+            {/* Icon */}
+            <div className="flex h-14 w-14 items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 text-2xl">
               {category.icon}
             </div>
 
-            <span className="mt-6 block text-sm font-medium uppercase tracking-[0.25em] text-amber-300/70">
+            <span className="mt-5 block text-xs font-semibold uppercase tracking-[0.2em] text-emerald-600">
               Knowledge Category
             </span>
 
-            <h1 className="mt-3 text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
+            <h1 className="mt-2 text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">
               {category.title}
             </h1>
 
-            <p className="mt-4 max-w-2xl text-base leading-7 text-slate-400 sm:text-lg">
+            <p className="mt-3 max-w-2xl text-base leading-7 text-slate-500">
               {category.description}
             </p>
 
-            <div className="mt-6 inline-flex rounded-full border border-white/10 bg-white/3 px-4 py-2 text-sm text-slate-400">
+            <div className="mt-5 inline-flex rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-500">
               {categoryArticles.length} article
               {categoryArticles.length !== 1 ? "s" : ""} to explore
             </div>
-          </motion.div>
+
+          </div>
         </div>
       </section>
 
-      {/* ARTICLES */}
-      <section className="px-4 py-14 sm:px-6 lg:px-10">
+      {/* =====================================================
+          ARTICLES
+      ====================================================== */}
+      <section className="px-4 py-10 sm:px-6 lg:px-10">
         <div className="mx-auto max-w-5xl">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-          >
-            <p className="text-sm font-medium uppercase tracking-[0.2em] text-amber-300/70">
+
+          <div className="mb-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">
               Explore
             </p>
 
-            <h2 className="mt-3 text-3xl font-bold">
+            <h2 className="mt-2 text-3xl font-bold text-slate-900">
               Articles in this category
             </h2>
-          </motion.div>
+          </div>
 
           {categoryArticles.length > 0 ? (
-            <div className="mt-8 grid gap-4 md:grid-cols-2">
-              {categoryArticles.map((article, index) => (
-                <motion.div
+            <div className="grid gap-4 md:grid-cols-2">
+
+              {categoryArticles.map((article) => (
+                <Link
                   key={article.slug}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{
-                    duration: 0.4,
-                    delay: index * 0.08,
-                  }}
+                  to={`/knowledge-hub/article/${article.slug}`}
+                  className="group rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:border-emerald-300 hover:bg-emerald-50/30"
                 >
-                  <Link
-                    to={`/knowledge-hub/article/${article.slug}`}
-                    className="group block h-full rounded-2xl border border-white/8 bg-white/2.5 p-5 transition duration-300 hover:-translate-y-1 hover:border-amber-300/30 hover:bg-white/4"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-amber-300/15 bg-amber-300/6 text-xl">
-                        {article.icon}
-                      </div>
+                  <div className="flex items-start justify-between gap-4">
 
-                      <span className="rounded-full border border-white/8 px-3 py-1 text-xs text-slate-500">
-                        {article.readTime}
-                      </span>
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 text-xl">
+                      {article.icon}
                     </div>
 
-                    <h3 className="mt-5 text-xl font-semibold text-white transition group-hover:text-amber-200">
-                      {article.title}
-                    </h3>
+                    <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs text-slate-400">
+                      {article.readTime}
+                    </span>
 
-                    <p className="mt-3 text-sm leading-6 text-slate-400">
-                      {article.description}
-                    </p>
+                  </div>
 
-                    <div className="mt-5 flex items-center gap-2 text-sm font-medium text-amber-300">
-                      Read article
+                  <h3 className="mt-5 text-xl font-semibold text-slate-900 group-hover:text-emerald-700">
+                    {article.title}
+                  </h3>
 
-                      <span className="transition group-hover:translate-x-1">
-                        →
-                      </span>
-                    </div>
-                  </Link>
-                </motion.div>
+                  <p className="mt-2 text-sm leading-6 text-slate-500">
+                    {article.description}
+                  </p>
+
+                  <div className="mt-4 flex items-center gap-2 text-sm font-medium text-emerald-600">
+                    Read article →
+                  </div>
+                </Link>
               ))}
+
             </div>
           ) : (
-            <div className="mt-8 rounded-2xl border border-dashed border-white/10 bg-white/2 p-8 text-center">
+            <div className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center">
+
               <div className="text-4xl">📚</div>
 
-              <h3 className="mt-4 text-xl font-semibold">
+              <h3 className="mt-3 text-xl font-semibold text-slate-900">
                 Articles coming soon
               </h3>
 
               <p className="mt-2 text-sm text-slate-500">
                 We are building content for this category.
               </p>
+
             </div>
           )}
+
         </div>
       </section>
 
-      {/* EXPLORE OTHER CATEGORIES */}
-      <section className="border-t border-white/6 px-4 py-12 sm:px-6 lg:px-10">
+      {/* =====================================================
+          OTHER CATEGORIES
+      ====================================================== */}
+      <section className="border-t border-slate-200 bg-white px-4 py-9 sm:px-6 lg:px-10">
         <div className="mx-auto max-w-5xl">
-          <h2 className="text-2xl font-bold">
+
+          <h2 className="text-2xl font-bold text-slate-900">
             Explore other categories
           </h2>
 
-          <div className="mt-6 flex flex-wrap gap-3">
+          <div className="mt-5 flex flex-wrap gap-3">
+
             {categories
               .filter((item) => item.id !== categoryId)
               .map((item) => (
                 <Link
                   key={item.id}
                   to={`/knowledge-hub/${item.id}`}
-                  className="rounded-xl border border-white/8 bg-white/2.5 px-4 py-3 text-sm text-slate-400 transition hover:border-amber-300/25 hover:text-amber-200"
+                  className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-600 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700"
                 >
-                  <span className="mr-2">{item.icon}</span>
+                  <span className="mr-2">
+                    {item.icon}
+                  </span>
+
                   {item.title}
                 </Link>
               ))}
+
           </div>
         </div>
       </section>
+
+      {/* =====================================================
+          FOOTER
+      ====================================================== */}
+      <footer className="border-t border-slate-200 bg-[#f8faf9] px-4 py-7 text-center text-sm text-slate-400">
+        <p>
+          © 2026 FlowState · Ancient wisdom · Modern exploration
+        </p>
+      </footer>
     </div>
   );
 };
