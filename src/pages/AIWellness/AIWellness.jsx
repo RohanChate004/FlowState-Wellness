@@ -8,10 +8,14 @@ import {
   FaMoon,
   FaPersonWalking,
   FaWind,
+  FaPaperPlane,
+  FaRobot,
 } from "react-icons/fa6";
 
 const AIWellness = () => {
   const [selectedMood, setSelectedMood] = useState(null);
+  const [message, setMessage] = useState("");
+  const [aiResponse, setAiResponse] = useState("");
 
   const moods = [
     {
@@ -53,26 +57,27 @@ const AIWellness = () => {
   ];
 
   const handleCheckIn = () => {
-    if (!selectedMood) return;
+    if (!selectedMood && !message.trim()) return;
 
     console.log("Selected mood:", selectedMood);
+    console.log("User message:", message);
 
-    // AI recommendation API will be connected here later.
+    // OpenAI API will be connected through Django here.
   };
 
   return (
     <div className="min-h-screen bg-white text-slate-800">
-      {/* Main Content */}
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        
-        {/* Hero Section */}
+
+        {/* HERO */}
         <section className="relative overflow-hidden rounded-3xl border border-emerald-100 bg-linear-to-br from-emerald-50 via-white to-amber-50 px-6 py-10 sm:px-10 lg:px-14">
-          
-          {/* Decorative elements */}
+
           <div className="absolute -right-20 -top-20 h-48 w-48 rounded-full bg-emerald-100/50 blur-3xl" />
+
           <div className="absolute -bottom-20 -left-20 h-48 w-48 rounded-full bg-amber-100/50 blur-3xl" />
 
           <div className="relative max-w-3xl">
+
             <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white px-4 py-2 text-sm font-medium text-emerald-700 shadow-sm">
               <FaHeart className="text-emerald-500" />
               AI Wellness
@@ -90,12 +95,15 @@ const AIWellness = () => {
               wellness information and activity history to help guide you
               toward a session that fits your moment.
             </p>
+
           </div>
         </section>
 
-        {/* Mood Check-in */}
+        {/* MOOD CHECK-IN */}
         <section className="mx-auto mt-10 max-w-5xl">
+
           <div className="text-center">
+
             <span className="text-sm font-semibold uppercase tracking-wider text-emerald-600">
               Step 01
             </span>
@@ -108,11 +116,14 @@ const AIWellness = () => {
               Choose the feeling that best describes your current state.
               There is no right or wrong answer.
             </p>
+
           </div>
 
-          {/* Mood Cards */}
+          {/* MOOD CARDS */}
           <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3">
+
             {moods.map((mood) => {
+
               const Icon = mood.icon;
               const isSelected = selectedMood === mood.id;
 
@@ -127,6 +138,7 @@ const AIWellness = () => {
                       : "border-slate-200 bg-white hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-md"
                   }`}
                 >
+
                   <div
                     className={`flex h-12 w-12 items-center justify-center rounded-xl transition-colors ${
                       isSelected
@@ -144,99 +156,170 @@ const AIWellness = () => {
                   <p className="mt-1 text-sm leading-5 text-slate-500">
                     {mood.description}
                   </p>
+
                 </button>
               );
             })}
+
           </div>
 
-          {/* Check-in Button */}
-          <div className="mt-8 flex justify-center">
-            <button
-              type="button"
-              disabled={!selectedMood}
-              onClick={handleCheckIn}
-              className={`inline-flex items-center gap-2 rounded-xl px-7 py-3.5 text-sm font-semibold transition-all ${
-                selectedMood
-                  ? "bg-emerald-600 text-white shadow-md hover:bg-emerald-700 hover:shadow-lg"
-                  : "cursor-not-allowed bg-slate-100 text-slate-400"
-              }`}
-            >
-              <FaLeaf />
-              Get My Recommendation
-            </button>
+          {/* OR TEXT INPUT */}
+          <div className="my-10 flex items-center gap-4">
+            <div className="h-px flex-1 bg-slate-200" />
+
+            <span className="text-sm font-medium text-slate-400">
+              OR TELL FLOWSTATE
+            </span>
+
+            <div className="h-px flex-1 bg-slate-200" />
           </div>
+
+          {/* AI CHAT INPUT */}
+          <div className="rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm sm:p-6">
+
+            <div className="flex items-start gap-4">
+
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+                <FaRobot />
+              </div>
+
+              <div className="flex-1">
+
+                <h3 className="font-semibold text-slate-900">
+                  Tell FlowState how you're feeling
+                </h3>
+
+                <p className="mt-1 text-sm text-slate-500">
+                  You can describe anything about your current mood,
+                  energy, stress, sleep, body or routine.
+                </p>
+
+              </div>
+
+            </div>
+
+            <textarea
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Example: I've been studying for hours and my mind feels tired. I also have some neck stiffness..."
+              rows={4}
+              className="mt-5 w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-800 outline-none transition focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100"
+            />
+
+            <div className="mt-4 flex justify-end">
+
+              <button
+                type="button"
+                disabled={!selectedMood && !message.trim()}
+                onClick={handleCheckIn}
+                className={`inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold transition-all ${
+                  selectedMood || message.trim()
+                    ? "bg-emerald-600 text-white shadow-md hover:bg-emerald-700"
+                    : "cursor-not-allowed bg-slate-100 text-slate-400"
+                }`}
+              >
+                <FaPaperPlane />
+                Ask FlowState AI
+              </button>
+
+            </div>
+
+          </div>
+
         </section>
 
-        {/* Recommendation Placeholder */}
+        {/* AI RESPONSE */}
         <section className="mx-auto mt-14 max-w-5xl">
-          <div className="rounded-3xl border border-dashed border-emerald-200 bg-emerald-50/40 p-6 sm:p-8">
+
+          <div className="rounded-3xl border border-emerald-200 bg-emerald-50/40 p-6 sm:p-8">
+
             <div className="flex flex-col items-center text-center">
+
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-emerald-600 shadow-sm">
                 <FaBrain className="text-2xl" />
               </div>
 
               <span className="mt-5 text-xs font-semibold uppercase tracking-wider text-emerald-600">
-                Your personalized wellness session
+                FlowState AI
               </span>
 
-              <h2 className="mt-2 text-xl font-bold text-slate-900 sm:text-2xl">
-                Your recommendation will appear here
-              </h2>
+              {aiResponse ? (
+                <>
+                  <h2 className="mt-2 text-xl font-bold text-slate-900 sm:text-2xl">
+                    Here's what I recommend
+                  </h2>
 
-              <p className="mt-3 max-w-xl text-sm leading-6 text-slate-500">
-                Once the AI Wellness backend is connected, FlowState will
-                analyze your mood, recent activity, and wellness history to
-                select one suitable session for you.
-              </p>
+                  <p className="mt-4 max-w-2xl whitespace-pre-line text-sm leading-7 text-slate-600">
+                    {aiResponse}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <h2 className="mt-2 text-xl font-bold text-slate-900 sm:text-2xl">
+                    Your AI response will appear here
+                  </h2>
 
-              <div className="mt-6 flex flex-wrap justify-center gap-2">
-                <span className="rounded-full bg-white px-3 py-1.5 text-xs font-medium text-slate-500 shadow-sm">
-                  Mood
-                </span>
-                <span className="rounded-full bg-white px-3 py-1.5 text-xs font-medium text-slate-500 shadow-sm">
-                  Recent Activity
-                </span>
-                <span className="rounded-full bg-white px-3 py-1.5 text-xs font-medium text-slate-500 shadow-sm">
-                  Wellness History
-                </span>
-              </div>
+                  <p className="mt-3 max-w-xl text-sm leading-6 text-slate-500">
+                    Tell FlowState how you're feeling and our AI will
+                    help you find a suitable next step.
+                  </p>
+                </>
+              )}
+
             </div>
+
           </div>
+
         </section>
 
-        {/* Bottom Information */}
+        {/* INFORMATION CARDS */}
         <section className="mx-auto mt-10 grid max-w-5xl gap-4 sm:grid-cols-3">
+
           <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+
             <FaBrain className="text-xl text-emerald-600" />
+
             <h3 className="mt-3 font-semibold text-slate-900">
               Personalized
             </h3>
+
             <p className="mt-1 text-sm leading-5 text-slate-500">
               Recommendations will consider your individual wellness journey.
             </p>
+
           </div>
 
           <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+
             <FaHeart className="text-xl text-emerald-600" />
+
             <h3 className="mt-3 font-semibold text-slate-900">
               Mind + Body
             </h3>
+
             <p className="mt-1 text-sm leading-5 text-slate-500">
               FlowState connects mental wellness with physical recovery.
             </p>
+
           </div>
 
           <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+
             <FaLeaf className="text-xl text-emerald-600" />
+
             <h3 className="mt-3 font-semibold text-slate-900">
               One Clear Action
             </h3>
+
             <p className="mt-1 text-sm leading-5 text-slate-500">
               The goal is to reduce choice overload and make the next step
               simple.
             </p>
+
           </div>
+
         </section>
+
       </main>
     </div>
   );

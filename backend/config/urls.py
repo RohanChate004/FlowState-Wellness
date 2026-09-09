@@ -24,4 +24,7 @@ urlpatterns = [
     path("api/", include("users.urls")),
     path("api/yoga/", include("yoga.urls")),
     path("api/meditation/", include("meditation.urls")),
+
+    # FlowState AI
+    path("api/ai-wellness/", include("ai_wellness.urls")),
 ]
