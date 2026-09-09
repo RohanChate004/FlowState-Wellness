@@ -15,11 +15,14 @@ import DeepDiveSession from "./pages/DeepDive/DeepDiveSession";
 import KnowledgeHub from "./pages/KnowledgeHub/KnowledgeHub";
 import CategoryPage from "./pages/KnowledgeHub/CategoryPage";
 import ArticlePage from "./pages/KnowledgeHub/ArticlePage";
+import Meditation from "./pages/Meditation/Meditation";
+import AIWellness from "./pages/AIWellness/AIWellness";
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
+
         <Route path="/" element={<Home />} />
 
         <Route path="/login" element={<Login />} />
@@ -46,7 +49,6 @@ function App() {
           path="/cycle-practice/:slug"
           element={<CyclePractice />}
         />
-
 
         {/* DEEP DIVE */}
         <Route
@@ -75,10 +77,17 @@ function App() {
           element={<ArticlePage />}
         />
 
+        {/* MEDITATION */}
+        <Route
+          path="/meditation"
+          element={<Meditation />}
+        />
+
+        <Route path="/ai-wellness" element={<AIWellness />} />
+
       </Routes>
     </BrowserRouter>
   );
 }
 
 export default App;
-

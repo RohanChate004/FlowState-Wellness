@@ -23,4 +23,5 @@ urlpatterns = [
 
     path("api/", include("users.urls")),
     path("api/yoga/", include("yoga.urls")),
+    path("api/meditation/", include("meditation.urls")),
 ]

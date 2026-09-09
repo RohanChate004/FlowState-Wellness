@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     "users",
     "corsheaders",
     "yoga",
+    "meditation",
 ]
 
 MIDDLEWARE = [
