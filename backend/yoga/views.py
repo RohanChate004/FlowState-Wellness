@@ -1,22 +1,24 @@
 from rest_framework import generics
 from rest_framework.filters import SearchFilter
 
-from .models import Asana
-from .serializers import AsanaSerializer
-
 from .models import (
     Asana,
+    Pranayama,
     CyclePhase,
     DeepDiveFocus,
 )
 
 from .serializers import (
     AsanaSerializer,
+    PranayamaSerializer,
     CyclePhaseSerializer,
     DeepDiveFocusSerializer,
 )
 
 
+# ============================================================
+# ASANA LIST
+# ============================================================
 
 class AsanaListView(generics.ListAPIView):
     serializer_class = AsanaSerializer
@@ -38,17 +40,76 @@ class AsanaListView(generics.ListAPIView):
         difficulty = self.request.query_params.get("difficulty")
 
         if category:
-            queryset = queryset.filter(category__iexact=category)
+            queryset = queryset.filter(
+                category__iexact=category
+            )
 
         if difficulty:
-            queryset = queryset.filter(difficulty__iexact=difficulty)
+            queryset = queryset.filter(
+                difficulty__iexact=difficulty
+            )
 
         return queryset
 
 
+# ============================================================
+# ASANA DETAIL
+# ============================================================
+
 class AsanaDetailView(generics.RetrieveAPIView):
     queryset = Asana.objects.filter(is_active=True)
     serializer_class = AsanaSerializer
+
+
+# ============================================================
+# PRANAYAMA LIST
+# ============================================================
+
+class PranayamaListView(generics.ListAPIView):
+    serializer_class = PranayamaSerializer
+    filter_backends = [SearchFilter]
+
+    search_fields = [
+        "name",
+        "sanskrit_name",
+        "short_description",
+        "focus_area",
+        "benefits",
+        "breathing_pattern",
+    ]
+
+    def get_queryset(self):
+        queryset = Pranayama.objects.filter(
+            is_active=True
+        )
+
+        difficulty = self.request.query_params.get(
+            "difficulty"
+        )
+
+        if difficulty:
+            queryset = queryset.filter(
+                difficulty__iexact=difficulty
+            )
+
+        return queryset
+
+
+# ============================================================
+# PRANAYAMA DETAIL
+# ============================================================
+
+class PranayamaDetailView(generics.RetrieveAPIView):
+    queryset = Pranayama.objects.filter(
+        is_active=True
+    )
+
+    serializer_class = PranayamaSerializer
+
+
+# ============================================================
+# SOS RECOMMENDATION
+# ============================================================
 
 class SOSRecommendationView(generics.ListAPIView):
     serializer_class = AsanaSerializer
@@ -71,8 +132,14 @@ class SOSRecommendationView(generics.ListAPIView):
                 "Hip Opener",
                 "Forward Bend",
             ],
-            "difficulty": ["Beginner", "Intermediate"],
-            "energy": ["Low", "Moderate"],
+            "difficulty": [
+                "Beginner",
+                "Intermediate",
+            ],
+            "energy": [
+                "Low",
+                "Moderate",
+            ],
         },
 
         "wired": {
@@ -132,6 +199,7 @@ class SOSRecommendationView(generics.ListAPIView):
             # -----------------------------
             # 1. Mood match
             # -----------------------------
+
             tags = asana.mood_tags or []
 
             normalized_tags = [
@@ -145,23 +213,25 @@ class SOSRecommendationView(generics.ListAPIView):
             # -----------------------------
             # 2. Category match
             # -----------------------------
+
             if asana.category in profile["categories"]:
                 score += 5
 
             # -----------------------------
             # 3. Difficulty match
             # -----------------------------
+
             if asana.difficulty in profile["difficulty"]:
                 score += 3
 
             # -----------------------------
             # 4. Energy match
             # -----------------------------
+
             if asana.energy_level in profile["energy"]:
                 score += 3
 
-            # Only recommend poses
-            # that have some relevance.
+            # Only recommend relevant poses
             if score > 0:
                 ranked_asanas.append(
                     (score, asana)
@@ -180,6 +250,11 @@ class SOSRecommendationView(generics.ListAPIView):
             for score, asana in ranked_asanas[:5]
         ]
 
+
+# ============================================================
+# CYCLE PHASE LIST
+# ============================================================
+
 class CyclePhaseListView(generics.ListAPIView):
     serializer_class = CyclePhaseSerializer
 
@@ -187,6 +262,11 @@ class CyclePhaseListView(generics.ListAPIView):
         return CyclePhase.objects.prefetch_related(
             "recommendations__asana"
         ).all()
+
+
+# ============================================================
+# CYCLE PHASE DETAIL
+# ============================================================
 
 class CyclePhaseDetailView(generics.RetrieveAPIView):
     serializer_class = CyclePhaseSerializer
@@ -198,6 +278,10 @@ class CyclePhaseDetailView(generics.RetrieveAPIView):
         ).all()
 
 
+# ============================================================
+# DEEP DIVE LIST
+# ============================================================
+
 class DeepDiveFocusListView(generics.ListAPIView):
     serializer_class = DeepDiveFocusSerializer
 
@@ -208,6 +292,10 @@ class DeepDiveFocusListView(generics.ListAPIView):
             "recommendations__asana"
         )
 
+
+# ============================================================
+# DEEP DIVE DETAIL
+# ============================================================
 
 class DeepDiveFocusDetailView(generics.RetrieveAPIView):
     serializer_class = DeepDiveFocusSerializer

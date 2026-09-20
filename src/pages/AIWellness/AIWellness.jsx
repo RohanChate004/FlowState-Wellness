@@ -1,4 +1,7 @@
 import { useState } from "react";
+import Footer from "../../components/Footer/Footer";
+import Navbar from "../../components/Navbar/Navbar";
+import { useNavigate } from "react-router-dom";
 import {
   FaBrain,
   FaBolt,
@@ -10,317 +13,456 @@ import {
   FaWind,
   FaPaperPlane,
   FaRobot,
+  FaCircleCheck,
 } from "react-icons/fa6";
 
 const AIWellness = () => {
-  const [selectedMood, setSelectedMood] = useState(null);
+  const navigate = useNavigate();
+
+  const [selectedMood, setSelectedMood] = useState("");
   const [message, setMessage] = useState("");
-  const [aiResponse, setAiResponse] = useState("");
+  const [messages, setMessages] = useState([
+    {
+      id: 1,
+      sender: "ai",
+      text: "Hi! I'm your FlowState AI Coach. How are you feeling today? 🌿",
+    },
+  ]);
+
+  const [recommendation, setRecommendation] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const moods = [
     {
       id: "stressed",
       label: "Stressed",
-      description: "My mind feels overloaded",
       icon: FaBrain,
     },
     {
       id: "anxious",
       label: "Anxious",
-      description: "I feel restless or worried",
       icon: FaWind,
     },
     {
       id: "tired",
       label: "Tired",
-      description: "I need to slow down",
       icon: FaMoon,
     },
     {
       id: "low-energy",
       label: "Low Energy",
-      description: "I need a gentle boost",
       icon: FaBolt,
     },
     {
       id: "sore",
       label: "Sore",
-      description: "My body needs some relief",
       icon: FaPersonWalking,
     },
     {
       id: "calm",
       label: "Calm",
-      description: "I feel balanced today",
       icon: FaFaceSmile,
     },
   ];
 
-  const handleCheckIn = () => {
-    if (!selectedMood && !message.trim()) return;
+  const handleMoodSelect = (mood) => {
+    setSelectedMood(mood);
 
-    console.log("Selected mood:", selectedMood);
-    console.log("User message:", message);
+    const moodLabel =
+      moods.find((item) => item.id === mood)?.label || mood;
 
-    // OpenAI API will be connected through Django here.
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: Date.now(),
+        sender: "user",
+        text: `I'm feeling ${moodLabel.toLowerCase()}.`,
+      },
+    ]);
+
+    setRecommendation(null);
   };
 
-  return (
-    <div className="min-h-screen bg-white text-slate-800">
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+  const handleSendMessage = async () => {
+    const trimmedMessage = message.trim();
 
-        {/* HERO */}
-        <section className="relative overflow-hidden rounded-3xl border border-emerald-100 bg-linear-to-br from-emerald-50 via-white to-amber-50 px-6 py-10 sm:px-10 lg:px-14">
+    if (!trimmedMessage && !selectedMood) {
+      return;
+    }
 
-          <div className="absolute -right-20 -top-20 h-48 w-48 rounded-full bg-emerald-100/50 blur-3xl" />
+    const userText =
+      trimmedMessage ||
+      `I'm feeling ${
+        moods.find((item) => item.id === selectedMood)?.label?.toLowerCase() ||
+        selectedMood
+      }.`;
 
-          <div className="absolute -bottom-20 -left-20 h-48 w-48 rounded-full bg-amber-100/50 blur-3xl" />
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: Date.now(),
+        sender: "user",
+        text: userText,
+      },
+    ]);
 
-          <div className="relative max-w-3xl">
+    setMessage("");
+    setRecommendation(null);
+    setIsLoading(true);
 
-            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white px-4 py-2 text-sm font-medium text-emerald-700 shadow-sm">
-              <FaHeart className="text-emerald-500" />
-              AI Wellness
-            </div>
+    try {
+      const accessToken = localStorage.getItem("accessToken");
 
-            <h1 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl lg:text-5xl">
-              Let FlowState understand
-              <span className="block text-emerald-600">
-                what you need today.
-              </span>
-            </h1>
+      const response = await fetch(
+        "http://127.0.0.1:8000/api/ai-wellness/chat/",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({
+            message: trimmedMessage,
+            mood: selectedMood,
+          }),
+        }
+      );
 
-            <p className="mt-5 max-w-2xl text-base leading-7 text-slate-600 sm:text-lg">
-              Tell us how you feel right now. FlowState will use your
-              wellness information and activity history to help guide you
-              toward a session that fits your moment.
-            </p>
+      const data = await response.json();
 
-          </div>
-        </section>
+      if (!response.ok) {
+        throw new Error(
+          data.error || "Unable to connect to FlowState AI."
+        );
+      }
 
-        {/* MOOD CHECK-IN */}
-        <section className="mx-auto mt-10 max-w-5xl">
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now() + 1,
+          sender: "ai",
+          text: data.reply || "I'm here to help you take a small next step.",
+        },
+      ]);
 
-          <div className="text-center">
+      setRecommendation(data.recommendation || null);
+    } catch (error) {
+      console.error("AI Wellness Error:", error);
 
-            <span className="text-sm font-semibold uppercase tracking-wider text-emerald-600">
-              Step 01
-            </span>
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now() + 1,
+          sender: "ai",
+          text:
+            "Sorry, I couldn't connect to FlowState AI right now. Please try again.",
+          error: true,
+        },
+      ]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-            <h2 className="mt-2 text-2xl font-bold text-slate-900 sm:text-3xl">
-              How are you feeling right now?
-            </h2>
+  const handleStartPractice = () => {
+    if (!recommendation) return;
 
-            <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-slate-500 sm:text-base">
-              Choose the feeling that best describes your current state.
-              There is no right or wrong answer.
-            </p>
+    switch (recommendation.type) {
+      case "meditation":
+      case "breathing":
+        navigate("/meditation");
+        break;
 
-          </div>
+      case "yoga":
+        navigate("/yoga");
+        break;
 
-          {/* MOOD CARDS */}
-          <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3">
+      case "deep_dive":
+        navigate("/deep-dive");
+        break;
 
-            {moods.map((mood) => {
+      default:
+        navigate("/yoga");
+    }
+  };
 
-              const Icon = mood.icon;
-              const isSelected = selectedMood === mood.id;
+  const handleKeyDown = (event) => {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      handleSendMessage();
+    }
+  };
 
-              return (
-                <button
-                  key={mood.id}
-                  type="button"
-                  onClick={() => setSelectedMood(mood.id)}
-                  className={`group rounded-2xl border p-5 text-left transition-all duration-200 ${
-                    isSelected
-                      ? "border-emerald-500 bg-emerald-50 shadow-md ring-2 ring-emerald-100"
-                      : "border-slate-200 bg-white hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-md"
-                  }`}
-                >
+  
+    return (
+  <div className="min-h-screen bg-stone-50 text-slate-800">
+    
+    <Navbar />
 
-                  <div
-                    className={`flex h-12 w-12 items-center justify-center rounded-xl transition-colors ${
-                      isSelected
-                        ? "bg-emerald-600 text-white"
-                        : "bg-emerald-50 text-emerald-600 group-hover:bg-emerald-100"
-                    }`}
-                  >
-                    <Icon className="text-xl" />
-                  </div>
+    <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:py-12">
 
-                  <h3 className="mt-4 font-semibold text-slate-900">
-                    {mood.label}
-                  </h3>
+        {/* HEADER */}
+        <section className="mb-6 rounded-3xl border border-emerald-100 bg-white shadow-sm">
 
-                  <p className="mt-1 text-sm leading-5 text-slate-500">
-                    {mood.description}
-                  </p>
+          <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4 sm:px-6">
 
-                </button>
-              );
-            })}
+            <div className="flex items-center gap-3">
 
-          </div>
-
-          {/* OR TEXT INPUT */}
-          <div className="my-10 flex items-center gap-4">
-            <div className="h-px flex-1 bg-slate-200" />
-
-            <span className="text-sm font-medium text-slate-400">
-              OR TELL FLOWSTATE
-            </span>
-
-            <div className="h-px flex-1 bg-slate-200" />
-          </div>
-
-          {/* AI CHAT INPUT */}
-          <div className="rounded-3xl border border-emerald-100 bg-white p-5 shadow-sm sm:p-6">
-
-            <div className="flex items-start gap-4">
-
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
                 <FaRobot />
               </div>
 
-              <div className="flex-1">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h1 className="font-bold text-slate-900">
+                    FlowState AI Coach
+                  </h1>
 
-                <h3 className="font-semibold text-slate-900">
-                  Tell FlowState how you're feeling
-                </h3>
+                  <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-600">
+                    AI
+                  </span>
+                </div>
 
-                <p className="mt-1 text-sm text-slate-500">
-                  You can describe anything about your current mood,
-                  energy, stress, sleep, body or routine.
-                </p>
-
+                <div className="mt-0.5 flex items-center gap-1.5 text-xs text-slate-500">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                  Online
+                </div>
               </div>
 
             </div>
 
-            <textarea
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder="Example: I've been studying for hours and my mind feels tired. I also have some neck stiffness..."
-              rows={4}
-              className="mt-5 w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-800 outline-none transition focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100"
-            />
-
-            <div className="mt-4 flex justify-end">
-
-              <button
-                type="button"
-                disabled={!selectedMood && !message.trim()}
-                onClick={handleCheckIn}
-                className={`inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold transition-all ${
-                  selectedMood || message.trim()
-                    ? "bg-emerald-600 text-white shadow-md hover:bg-emerald-700"
-                    : "cursor-not-allowed bg-slate-100 text-slate-400"
-                }`}
-              >
-                <FaPaperPlane />
-                Ask FlowState AI
-              </button>
-
-            </div>
+            <span className="hidden text-xs text-slate-400 sm:block">
+              Your wellness companion
+            </span>
 
           </div>
 
-        </section>
+          {/* CHAT AREA */}
+          <div className="min-h-[430px] px-4 py-5 sm:px-6 sm:py-6">
 
-        {/* AI RESPONSE */}
-        <section className="mx-auto mt-14 max-w-5xl">
+            {/* QUICK MOODS */}
+            <div className="mb-6">
 
-          <div className="rounded-3xl border border-emerald-200 bg-emerald-50/40 p-6 sm:p-8">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-emerald-600">
+                Quick check-in
+              </p>
 
-            <div className="flex flex-col items-center text-center">
+              <div className="flex flex-wrap gap-2">
 
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-emerald-600 shadow-sm">
-                <FaBrain className="text-2xl" />
+                {moods.map((mood) => {
+                  const Icon = mood.icon;
+                  const isSelected = selectedMood === mood.id;
+
+                  return (
+                    <button
+                      key={mood.id}
+                      type="button"
+                      onClick={() => handleMoodSelect(mood.id)}
+                      className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-medium transition ${
+                        isSelected
+                          ? "border-emerald-500 bg-emerald-600 text-white"
+                          : "border-emerald-100 bg-emerald-50 text-emerald-700 hover:border-emerald-300 hover:bg-emerald-100"
+                      }`}
+                    >
+                      <Icon />
+                      {mood.label}
+                    </button>
+                  );
+                })}
+
               </div>
+            </div>
 
-              <span className="mt-5 text-xs font-semibold uppercase tracking-wider text-emerald-600">
-                FlowState AI
-              </span>
+            {/* CHAT MESSAGES */}
+            <div className="space-y-4">
 
-              {aiResponse ? (
-                <>
-                  <h2 className="mt-2 text-xl font-bold text-slate-900 sm:text-2xl">
-                    Here's what I recommend
-                  </h2>
+              {messages.map((item) => (
+                <div
+                  key={item.id}
+                  className={`flex ${
+                    item.sender === "user"
+                      ? "justify-end"
+                      : "justify-start"
+                  }`}
+                >
 
-                  <p className="mt-4 max-w-2xl whitespace-pre-line text-sm leading-7 text-slate-600">
-                    {aiResponse}
-                  </p>
-                </>
-              ) : (
-                <>
-                  <h2 className="mt-2 text-xl font-bold text-slate-900 sm:text-2xl">
-                    Your AI response will appear here
-                  </h2>
+                  {item.sender === "ai" && (
+                    <div className="mr-2 mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-xs text-emerald-600">
+                      <FaRobot />
+                    </div>
+                  )}
 
-                  <p className="mt-3 max-w-xl text-sm leading-6 text-slate-500">
-                    Tell FlowState how you're feeling and our AI will
-                    help you find a suitable next step.
-                  </p>
-                </>
+                  <div
+                    className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-6 ${
+                      item.sender === "user"
+                        ? "rounded-br-md bg-emerald-600 text-white"
+                        : item.error
+                        ? "rounded-bl-md border border-red-100 bg-red-50 text-red-600"
+                        : "rounded-bl-md bg-emerald-50 text-slate-700"
+                    }`}
+                  >
+                    {item.text}
+                  </div>
+
+                </div>
+              ))}
+
+              {/* TYPING INDICATOR */}
+              {isLoading && (
+                <div className="flex items-center gap-2">
+
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-50 text-xs text-emerald-600">
+                    <FaRobot />
+                  </div>
+
+                  <div className="rounded-2xl rounded-bl-md bg-emerald-50 px-4 py-3">
+                    <div className="flex items-center gap-1">
+                      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
+                      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500 [animation-delay:150ms]" />
+                      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500 [animation-delay:300ms]" />
+                    </div>
+                  </div>
+
+                </div>
               )}
 
             </div>
 
+            {/* RECOMMENDATION */}
+            {recommendation && (
+              <div className="mt-6 rounded-2xl border border-emerald-200 bg-white p-4 shadow-sm sm:p-5">
+
+                <div className="flex items-start gap-3">
+
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+                    <FaLeaf />
+                  </div>
+
+                  <div className="flex-1">
+
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-600">
+                          Your next step
+                        </p>
+
+                        <h2 className="mt-1 text-base font-bold text-slate-900 sm:text-lg">
+                          {recommendation.title}
+                        </h2>
+                      </div>
+
+                      {recommendation.duration && (
+                        <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+                          {recommendation.duration} min
+                        </span>
+                      )}
+
+                    </div>
+
+                    <p className="mt-2 text-xs capitalize text-slate-500">
+                      {recommendation.type?.replace("_", " ")}
+                    </p>
+
+                    <button
+                      type="button"
+                      onClick={handleStartPractice}
+                      className="mt-4 inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-emerald-700"
+                    >
+                      <FaCircleCheck />
+                      Start Practice
+                    </button>
+
+                  </div>
+
+                </div>
+
+              </div>
+            )}
+
+          </div>
+
+          {/* INPUT */}
+          <div className="border-t border-slate-100 p-4 sm:p-5">
+
+            <div className="flex items-end gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-2 transition focus-within:border-emerald-300 focus-within:bg-white">
+
+              <textarea
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Tell FlowState how you're feeling..."
+                rows={1}
+                className="max-h-24 min-h-[42px] flex-1 resize-none bg-transparent px-3 py-2 text-sm text-slate-800 outline-none placeholder:text-slate-400"
+              />
+
+              <button
+                type="button"
+                onClick={handleSendMessage}
+                disabled={isLoading || (!message.trim() && !selectedMood)}
+                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition ${
+                  isLoading || (!message.trim() && !selectedMood)
+                    ? "cursor-not-allowed bg-slate-200 text-slate-400"
+                    : "bg-emerald-600 text-white hover:bg-emerald-700"
+                }`}
+                aria-label="Send message"
+              >
+                <FaPaperPlane className="text-xs" />
+              </button>
+
+            </div>
+
+            <p className="mt-2 text-center text-[10px] text-slate-400">
+              FlowState AI provides wellness guidance, not medical diagnosis.
+            </p>
+
           </div>
 
         </section>
 
-        {/* INFORMATION CARDS */}
-        <section className="mx-auto mt-10 grid max-w-5xl gap-4 sm:grid-cols-3">
+        {/* FOOTER INFO */}
+        <section className="grid gap-3 sm:grid-cols-3">
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="rounded-2xl border border-slate-200 bg-white p-4">
+            <FaBrain className="text-emerald-600" />
 
-            <FaBrain className="text-xl text-emerald-600" />
-
-            <h3 className="mt-3 font-semibold text-slate-900">
+            <h3 className="mt-2 text-sm font-semibold text-slate-900">
               Personalized
             </h3>
 
-            <p className="mt-1 text-sm leading-5 text-slate-500">
-              Recommendations will consider your individual wellness journey.
+            <p className="mt-1 text-xs leading-5 text-slate-500">
+              Uses your current situation and available wellness activity.
             </p>
-
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="rounded-2xl border border-slate-200 bg-white p-4">
+            <FaHeart className="text-emerald-600" />
 
-            <FaHeart className="text-xl text-emerald-600" />
-
-            <h3 className="mt-3 font-semibold text-slate-900">
+            <h3 className="mt-2 text-sm font-semibold text-slate-900">
               Mind + Body
             </h3>
 
-            <p className="mt-1 text-sm leading-5 text-slate-500">
-              FlowState connects mental wellness with physical recovery.
+            <p className="mt-1 text-xs leading-5 text-slate-500">
+              Connects mental wellness with movement and recovery.
             </p>
-
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="rounded-2xl border border-slate-200 bg-white p-4">
+            <FaLeaf className="text-emerald-600" />
 
-            <FaLeaf className="text-xl text-emerald-600" />
-
-            <h3 className="mt-3 font-semibold text-slate-900">
+            <h3 className="mt-2 text-sm font-semibold text-slate-900">
               One Clear Action
             </h3>
 
-            <p className="mt-1 text-sm leading-5 text-slate-500">
-              The goal is to reduce choice overload and make the next step
-              simple.
+            <p className="mt-1 text-xs leading-5 text-slate-500">
+              Helps reduce choice overload with one suggested next step.
             </p>
-
           </div>
 
         </section>
 
       </main>
+       <Footer />
     </div>
   );
 };

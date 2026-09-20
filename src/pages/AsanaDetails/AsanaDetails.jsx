@@ -150,6 +150,60 @@ function AsanaDetails() {
                   {asana.short_description}
                 </p>
 
+
+                {/* GUIDED VIDEO */}
+                <section className="mt-6 overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-gray-100">
+                  <div className="border-b border-gray-100 p-6 sm:p-8">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-green-700">
+                      Guided Practice
+                    </p>
+
+                    <h2 className="mt-1 text-xl font-bold text-gray-900">
+                      Watch & Practice
+                    </h2>
+
+                    <p className="mt-2 text-sm leading-6 text-gray-500">
+                      Follow the practice at your own pace and stay within a comfortable range.
+                    </p>
+                  </div>
+
+                  {asana.video_url ? (
+                    <div className="aspect-video w-full bg-black">
+                      {asana.video_type === "youtube" ? (
+                        <iframe
+                          src={asana.video_url}
+                          title={`${asana.name} guided practice`}
+                          className="h-full w-full"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                        />
+                      ) : (
+                        <video
+                          src={asana.video_url}
+                          controls
+                          className="h-full w-full"
+                        >
+                          Your browser does not support video playback.
+                        </video>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex aspect-video items-center justify-center bg-gray-50">
+                      <div className="text-center px-6">
+                        <div className="text-4xl mb-3">🎥</div>
+
+                        <h3 className="font-semibold text-gray-800">
+                          Video coming soon
+                        </h3>
+
+                        <p className="mt-1 text-sm text-gray-500">
+                          A guided video for this practice will be available soon.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </section>
+
                 {/* Quick Info */}
                 <div className="mt-6 grid grid-cols-2 gap-3">
                   <div className="rounded-2xl bg-green-50 p-4">
@@ -207,6 +261,46 @@ function AsanaDetails() {
               </div>
             </div>
           </section>
+
+          {/* Guided Video */}
+          {asana.video_url && (
+            <section className="mt-5 overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-gray-100">
+              <div className="border-b border-gray-100 p-6 sm:p-8">
+                <p className="text-xs font-semibold uppercase tracking-wider text-green-700">
+                  Guided Practice
+                </p>
+
+                <h2 className="mt-1 text-xl font-bold">
+                  Watch & Practice
+                </h2>
+
+                <p className="mt-2 text-sm leading-6 text-gray-500">
+                  Follow the movement at your own pace and stay within
+                  a comfortable range.
+                </p>
+              </div>
+
+              <div className="aspect-video w-full bg-black">
+                {asana.video_type === "youtube" ? (
+                  <iframe
+                    src={asana.video_url}
+                    title={`${asana.name} guided practice`}
+                    className="h-full w-full"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                ) : (
+                  <video
+                    src={asana.video_url}
+                    controls
+                    className="h-full w-full"
+                  >
+                    Your browser does not support video playback.
+                  </video>
+                )}
+              </div>
+            </section>
+          )}
 
           {/* Practice Information */}
           <section className="mt-5 grid gap-5 lg:grid-cols-2">

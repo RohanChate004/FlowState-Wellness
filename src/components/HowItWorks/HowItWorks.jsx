@@ -3,30 +3,30 @@ function HowItWorks() {
     {
       number: "01",
       icon: "👤",
-      title: "Sign Up",
+      title: "Create Your Account",
       description:
-        "Create your free FlowState account and begin your wellness journey.",
+        "Create your FlowState account and begin your personalized wellness journey.",
     },
     {
       number: "02",
-      icon: "🤖",
-      title: "AI Assessment",
+      icon: "💬",
+      title: "Tell Us How You Feel",
       description:
-        "Tell us about your goals, mood, lifestyle and wellness needs.",
+        "Share your current mood, needs or wellness concerns with FlowState.",
     },
     {
       number: "03",
-      icon: "🌿",
-      title: "Get Your Routine",
+      icon: "🤖",
+      title: "Get Your Guidance",
       description:
-        "Receive personalized yoga, meditation and wellness recommendations.",
+        "FlowState uses your input and wellness context to suggest a suitable practice.",
     },
     {
       number: "04",
-      icon: "📈",
-      title: "Track & Improve",
+      icon: "🌿",
+      title: "Practice & Improve",
       description:
-        "Track your progress, build healthy habits and keep improving.",
+        "Follow your recommended practice and build healthier wellness habits over time.",
     },
   ];
 
@@ -47,12 +47,11 @@ function HowItWorks() {
           </h2>
 
           <p className="text-gray-500 mt-4 leading-relaxed">
-            Start small, build healthy habits and let FlowState
-            guide you towards a more balanced lifestyle.
+            Start small, tell FlowState what you need and let
+            personalized wellness guidance help you find your flow.
           </p>
 
         </div>
-
 
         {/* Steps */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 md:gap-5">
@@ -69,24 +68,20 @@ function HowItWorks() {
                 {step.number}
               </p>
 
-
               {/* Icon */}
               <div className="relative z-10 w-16 h-16 mx-auto -mt-5 rounded-full bg-green-50 border-4 border-white shadow-sm flex items-center justify-center text-2xl">
                 {step.icon}
               </div>
-
 
               {/* Title */}
               <h3 className="text-xl font-semibold text-gray-900 mt-5">
                 {step.title}
               </h3>
 
-
               {/* Description */}
               <p className="text-sm text-gray-500 leading-relaxed mt-3 max-w-xs mx-auto">
                 {step.description}
               </p>
-
 
               {/* Desktop Connector */}
               {index < steps.length - 1 && (

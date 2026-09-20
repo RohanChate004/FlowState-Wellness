@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import (
     Asana,
+    Pranayama,
     CyclePhase,
     CycleRecommendation,
     DeepDiveFocus,
@@ -8,9 +9,14 @@ from .models import (
 )
 
 
+# ============================================================
+# ASANA SERIALIZER
+# ============================================================
+
 class AsanaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Asana
+
         fields = [
             "id",
             "name",
@@ -27,16 +33,61 @@ class AsanaSerializer(serializers.ModelSerializer):
             "contraindications",
             "modifications",
             "image_url",
+
+            # Video
+            "video_url",
+            "video_type",
+
             "is_active",
             "created_at",
             "updated_at",
         ]
+
+
+# ============================================================
+# PRANAYAMA SERIALIZER
+# ============================================================
+
+class PranayamaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Pranayama
+
+        fields = [
+            "id",
+            "name",
+            "sanskrit_name",
+            "short_description",
+            "difficulty",
+            "benefits",
+            "instructions",
+            "duration_seconds",
+            "breathing_pattern",
+            "focus_area",
+            "mood_tags",
+            "contraindications",
+            "modifications",
+            "image_url",
+
+            # Video
+            "video_url",
+            "video_type",
+
+            "is_active",
+            "created_at",
+            "updated_at",
+        ]
+
+
+# ============================================================
+# CYCLE RECOMMENDATION SERIALIZER
+# ============================================================
 
 class CycleRecommendationSerializer(serializers.ModelSerializer):
     asana = AsanaSerializer(read_only=True)
 
     class Meta:
         model = CycleRecommendation
+
         fields = [
             "id",
             "asana",
@@ -46,6 +97,11 @@ class CycleRecommendationSerializer(serializers.ModelSerializer):
             "is_active",
         ]
 
+
+# ============================================================
+# CYCLE PHASE SERIALIZER
+# ============================================================
+
 class CyclePhaseSerializer(serializers.ModelSerializer):
     recommendations = CycleRecommendationSerializer(
         many=True,
@@ -54,6 +110,7 @@ class CyclePhaseSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CyclePhase
+
         fields = [
             "id",
             "name",
@@ -67,11 +124,17 @@ class CyclePhaseSerializer(serializers.ModelSerializer):
             "recommendations",
         ]
 
+
+# ============================================================
+# DEEP DIVE RECOMMENDATION SERIALIZER
+# ============================================================
+
 class DeepDiveRecommendationSerializer(serializers.ModelSerializer):
     asana = AsanaSerializer(read_only=True)
 
     class Meta:
         model = DeepDiveRecommendation
+
         fields = [
             "id",
             "asana",
@@ -82,6 +145,10 @@ class DeepDiveRecommendationSerializer(serializers.ModelSerializer):
         ]
 
 
+# ============================================================
+# DEEP DIVE FOCUS SERIALIZER
+# ============================================================
+
 class DeepDiveFocusSerializer(serializers.ModelSerializer):
     recommendations = DeepDiveRecommendationSerializer(
         many=True,
@@ -90,6 +157,7 @@ class DeepDiveFocusSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = DeepDiveFocus
+
         fields = [
             "id",
             "title",

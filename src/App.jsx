@@ -5,6 +5,7 @@ import Login from "./pages/Login/Login";
 import Signup from "./pages/Signup/Signup";
 import Dashboard from "./pages/Dashboard/Dashboard";
 import Yoga from "./pages/Yoga/Yoga";
+import Contact from "./pages/Contact/contact";
 import ProtectedRoute from "./components/ProtectedRoute/ProtectedRoute";
 import AsanaDetails from "./pages/AsanaDetails/AsanaDetails";
 import CyclePractice from "./pages/CyclePractice/CyclePractice";
@@ -84,6 +85,8 @@ function App() {
         />
 
         <Route path="/ai-wellness" element={<AIWellness />} />
+
+          <Route path="/contact" element={<Contact />} />
 
       </Routes>
     </BrowserRouter>

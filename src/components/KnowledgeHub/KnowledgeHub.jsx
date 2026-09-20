@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+
 function KnowledgeHub() {
   const categories = [
     {
@@ -55,14 +57,13 @@ function KnowledgeHub() {
 
         </div>
 
-
         {/* Category Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
 
           {categories.map((category, index) => (
 
-            <a
-              href="/knowledge-hub"
+            <Link
+              to="/knowledge-hub"
               key={index}
               className="group bg-white border border-gray-100 rounded-3xl p-5 md:p-6 text-center shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
             >
@@ -72,40 +73,36 @@ function KnowledgeHub() {
                 {category.icon}
               </div>
 
-
               {/* Title */}
               <h3 className="font-semibold text-gray-900 mt-4">
                 {category.title}
               </h3>
-
 
               {/* Description */}
               <p className="text-xs text-gray-500 mt-2 leading-relaxed">
                 {category.text}
               </p>
 
-
               {/* Small Arrow */}
               <div className="text-green-600 text-sm font-semibold mt-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                 Explore →
               </div>
 
-            </a>
+            </Link>
 
           ))}
 
         </div>
 
-
         {/* CTA */}
         <div className="text-center mt-10">
 
-          <a
-            href="/knowledge-hub"
+          <Link
+            to="/knowledge-hub"
             className="inline-flex items-center justify-center border border-green-600 text-green-700 px-7 py-3.5 rounded-xl font-semibold hover:bg-green-50 transition duration-300"
           >
             Explore Knowledge Hub →
-          </a>
+          </Link>
 
         </div>
 

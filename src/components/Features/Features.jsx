@@ -1,25 +1,31 @@
+import { Link } from "react-router-dom";
+
 function Features() {
   const features = [
     {
       icon: "🤖",
       title: "AI Wellness",
       description: "Smart AI guidance for your mind and body.",
+      route: "/ai-wellness",
     },
     {
       icon: "🧘",
       title: "Yoga Library",
       description: "Explore yoga practices with steps, benefits and videos.",
+      route: "/yoga",
     },
     {
       icon: "🌿",
       title: "Meditation",
       description: "Guided meditation for stress relief, focus and sleep.",
+      route: "/meditation",
     },
     {
       icon: "📖",
       title: "Knowledge Hub",
       description:
         "Learn about yoga, pranayama, mudra, mantra and wellness.",
+      route: "/knowledge-hub",
     },
     {
       icon: "☀️",
@@ -32,6 +38,7 @@ function Features() {
       title: "Progress Tracking",
       description:
         "Track your wellness journey and celebrate your progress.",
+      route: "/dashboard",
     },
   ];
 
@@ -88,9 +95,18 @@ function Features() {
 
 
               {/* Explore */}
-              <button className="mt-5 text-green-600 font-semibold text-sm hover:text-green-700 transition">
-                Explore →
-              </button>
+              {feature.route ? (
+                <Link
+                  to={feature.route}
+                  className="inline-flex mt-5 text-green-600 font-semibold text-sm hover:text-green-700 transition"
+                >
+                  Explore →
+                </Link>
+              ) : (
+                <span className="inline-flex mt-5 text-green-600 font-semibold text-sm">
+                  Explore →
+                </span>
+              )}
 
             </div>
 

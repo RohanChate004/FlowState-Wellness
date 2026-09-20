@@ -2,35 +2,33 @@ function Stats() {
   const stats = [
     {
       icon: "🌿",
-      number: "250K+",
-      label: "Sessions Completed",
-    },
-    {
-      icon: "✓",
-      number: "98%",
-      label: "User Satisfaction",
-    },
-    {
-      icon: "☀️",
-      number: "40+",
-      label: "Yoga Practices",
+      number: "1",
+      label: "Unified Wellness Platform",
     },
     {
       icon: "🤖",
-      number: "24/7",
-      label: "AI Wellness Support",
+      number: "AI",
+      label: "Personalized Wellness Guidance",
+    },
+    {
+      icon: "🧘",
+      number: "40+",
+      label: "Yoga & Wellness Practices",
+    },
+    {
+      icon: "☀️",
+      number: "3+",
+      label: "Wellness Areas",
     },
   ];
 
   return (
     <section className="bg-white">
-
       <div className="max-w-7xl mx-auto px-6 py-8 md:py-10">
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
 
           {stats.map((stat, index) => (
-
             <div
               key={index}
               className="group bg-white border border-gray-100 rounded-2xl p-5 md:p-6 text-center shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300"
@@ -41,7 +39,7 @@ function Stats() {
                 {stat.icon}
               </div>
 
-              {/* Number */}
+              {/* Number / Highlight */}
               <h3 className="text-2xl md:text-3xl font-bold text-green-600">
                 {stat.number}
               </h3>
@@ -52,13 +50,11 @@ function Stats() {
               </p>
 
             </div>
-
           ))}
 
         </div>
 
       </div>
-
     </section>
   );
 }

@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+
 function AIWellness() {
   return (
     <section className="bg-[#f5faf7] py-20 md:py-24">
@@ -36,54 +38,38 @@ function AIWellness() {
 
             </div>
 
-
             {/* Chat Messages */}
             <div className="space-y-4 py-6">
 
               {/* AI */}
               <div className="flex items-start gap-2">
-
                 <div className="bg-green-50 rounded-2xl rounded-tl-sm px-4 py-3 max-w-[85%]">
-
                   <p className="text-sm text-gray-700">
                     How are you feeling today? 🌿
                   </p>
-
                 </div>
-
               </div>
-
 
               {/* User */}
               <div className="flex justify-end">
-
                 <div className="bg-green-600 text-white rounded-2xl rounded-tr-sm px-4 py-3 max-w-[85%]">
-
                   <p className="text-sm">
                     I'm feeling a little stressed.
                   </p>
-
                 </div>
-
               </div>
-
 
               {/* AI */}
               <div className="flex items-start gap-2">
-
                 <div className="bg-green-50 rounded-2xl rounded-tl-sm px-4 py-3 max-w-[85%]">
-
                   <p className="text-sm text-gray-700 leading-relaxed">
                     I understand. Let's take a small step together.
                     Try a 5-minute breathing exercise. 🧘
                   </p>
-
                 </div>
-
               </div>
 
             </div>
-
 
             {/* Fake Input */}
             <div className="flex items-center gap-3 border border-gray-200 rounded-xl px-4 py-3">
@@ -100,7 +86,6 @@ function AIWellness() {
 
           </div>
 
-
           {/* RIGHT — INFORMATION */}
           <div>
 
@@ -109,29 +94,22 @@ function AIWellness() {
             </p>
 
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mt-3 leading-tight tracking-tight">
-
               Your Personal{" "}
-
               <span className="text-green-600">
                 AI Wellness Coach
               </span>
-
             </h2>
 
             <p className="text-gray-500 text-base md:text-lg mt-5 leading-relaxed max-w-xl">
-
               Get personalized support for your mental well-being
               and physical health. FlowState helps you understand
               your needs and build healthier daily habits.
-
             </p>
-
 
             {/* Benefits */}
             <div className="space-y-4 mt-7">
 
               <div className="flex items-center gap-3">
-
                 <div className="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-semibold">
                   ✓
                 </div>
@@ -139,12 +117,9 @@ function AIWellness() {
                 <span className="text-gray-700">
                   Personalized wellness guidance
                 </span>
-
               </div>
 
-
               <div className="flex items-center gap-3">
-
                 <div className="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-semibold">
                   ✓
                 </div>
@@ -152,12 +127,9 @@ function AIWellness() {
                 <span className="text-gray-700">
                   Mood and wellness tracking
                 </span>
-
               </div>
 
-
               <div className="flex items-center gap-3">
-
                 <div className="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-semibold">
                   ✓
                 </div>
@@ -165,19 +137,17 @@ function AIWellness() {
                 <span className="text-gray-700">
                   Mind + body wellness support
                 </span>
-
               </div>
 
             </div>
 
-
             {/* CTA */}
-            <a
-              href="/ai-wellness"
+            <Link
+              to="/ai-wellness"
               className="inline-flex items-center justify-center mt-8 bg-green-600 text-white px-7 py-3.5 rounded-xl font-semibold hover:bg-green-700 transition duration-300 shadow-sm"
             >
               Try AI Wellness →
-            </a>
+            </Link>
 
           </div>
 

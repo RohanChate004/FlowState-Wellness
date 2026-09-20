@@ -3,6 +3,8 @@ from django.urls import path
 from .views import (
     AsanaDetailView,
     AsanaListView,
+    PranayamaListView,
+    PranayamaDetailView,
     SOSRecommendationView,
     CyclePhaseListView,
     CyclePhaseDetailView,
@@ -12,6 +14,11 @@ from .views import (
 
 
 urlpatterns = [
+
+    # ========================================================
+    # ASANAS
+    # ========================================================
+
     path(
         "asanas/",
         AsanaListView.as_view(),
@@ -24,11 +31,38 @@ urlpatterns = [
         name="asana-detail",
     ),
 
+
+    # ========================================================
+    # PRANAYAMA
+    # ========================================================
+
+    path(
+        "pranayamas/",
+        PranayamaListView.as_view(),
+        name="pranayama-list",
+    ),
+
+    path(
+        "pranayamas/<int:pk>/",
+        PranayamaDetailView.as_view(),
+        name="pranayama-detail",
+    ),
+
+
+    # ========================================================
+    # SOS
+    # ========================================================
+
     path(
         "sos/",
         SOSRecommendationView.as_view(),
         name="sos-recommendation",
     ),
+
+
+    # ========================================================
+    # CYCLE PHASES
+    # ========================================================
 
     path(
         "cycle-phases/",
@@ -41,6 +75,11 @@ urlpatterns = [
         CyclePhaseDetailView.as_view(),
         name="cycle-phase-detail",
     ),
+
+
+    # ========================================================
+    # DEEP DIVE
+    # ========================================================
 
     path(
         "deep-dives/",
