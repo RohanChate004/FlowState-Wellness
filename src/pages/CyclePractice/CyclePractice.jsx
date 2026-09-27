@@ -1,3 +1,4 @@
+import API_BASE_URL from "../../services/api";
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 
@@ -14,9 +15,7 @@ function CyclePractice() {
         setLoading(true);
         setError("");
 
-        const response = await fetch(
-          `http://127.0.0.1:8000/api/yoga/cycle-phases/${slug}/`
-        );
+        const response = await fetch(`${API_BASE_URL}/api/yoga/cycle-phases/...`);
 
         if (!response.ok) {
           throw new Error("Unable to load cycle practice.");

@@ -1,3 +1,4 @@
+import API_BASE_URL from "../../services/api";
 import { useState } from "react";
 
 function Login() {
@@ -36,19 +37,19 @@ function Login() {
 
     try {
       const response = await fetch(
-        "http://127.0.0.1:8000/api/login/",
+        `${API_BASE_URL}/api/login/`,
         {
-          method: "POST",
+        method: "POST",
 
-          headers: {
-            "Content-Type": "application/json",
-          },
+        headers: {
+          "Content-Type": "application/json",
+        },
 
-          body: JSON.stringify({
-            email: email.trim(),
-            password: password,
-          }),
-        }
+        body: JSON.stringify({
+          email: email.trim(),
+          password: password,
+        }),
+      }
       );
 
       const data = await response.json();

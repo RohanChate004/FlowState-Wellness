@@ -1,3 +1,4 @@
+import API_BASE_URL from "../../services/api";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../../components/Navbar/Navbar";
@@ -22,9 +23,7 @@ function Dashboard() {
       const accessToken = localStorage.getItem("accessToken");
 
       try {
-        const response = await fetch(
-          "http://127.0.0.1:8000/api/me/",
-          {
+        const response = await fetch(`${API_BASE_URL}/api/me/`, {
             method: "GET",
             headers: {
               Authorization: `Bearer ${accessToken}`,
@@ -40,9 +39,7 @@ function Dashboard() {
         const data = await response.json();
         setUser(data);
 
-        const wellnessResponse = await fetch(
-          "http://127.0.0.1:8000/api/wellness/",
-          {
+        const wellnessResponse = await fetch(`${API_BASE_URL}/api/wellness/`, {
             method: "GET",
             headers: {
               Authorization: `Bearer ${accessToken}`,

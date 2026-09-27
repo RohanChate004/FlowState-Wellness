@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import Footer from "../../components/Footer/Footer";
 import Navbar from "../../components/Navbar/Navbar";
@@ -113,9 +114,7 @@ const AIWellness = () => {
     try {
       const accessToken = localStorage.getItem("accessToken");
 
-      const response = await fetch(
-        "http://127.0.0.1:8000/api/ai-wellness/chat/",
-        {
+      const response = await fetch("http://127.0.0.1:8000/api/ai-wellness/chat/...", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -238,7 +237,7 @@ const AIWellness = () => {
           </div>
 
           {/* CHAT AREA */}
-          <div className="min-h-[430px] px-4 py-5 sm:px-6 sm:py-6">
+          <div className="min-h-107.5 px-4 py-5 sm:px-6 sm:py-6">
 
             {/* QUICK MOODS */}
             <div className="mb-6">
@@ -393,7 +392,7 @@ const AIWellness = () => {
                 onKeyDown={handleKeyDown}
                 placeholder="Tell FlowState how you're feeling..."
                 rows={1}
-                className="max-h-24 min-h-[42px] flex-1 resize-none bg-transparent px-3 py-2 text-sm text-slate-800 outline-none placeholder:text-slate-400"
+                className="max-h-24 min-h-10.5 flex-1 resize-none bg-transparent px-3 py-2 text-sm text-slate-800 outline-none placeholder:text-slate-400"
               />
 
               <button

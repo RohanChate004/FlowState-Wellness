@@ -1,3 +1,4 @@
+import API_BASE_URL from "../../services/api";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Navbar from "../../components/Navbar/Navbar";

@@ -1,3 +1,4 @@
+import API_BASE_URL from "../../services/api";
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import Navbar from "../../components/Navbar/Navbar";
@@ -15,9 +16,7 @@ function AsanaDetails() {
         setLoading(true);
         setError("");
 
-        const response = await fetch(
-          `http://127.0.0.1:8000/api/yoga/asanas/${id}/`
-        );
+        const response = await fetch(`${API_BASE_URL}/api/yoga/asanas/...`);
 
         if (!response.ok) {
           throw new Error("Asana not found.");
