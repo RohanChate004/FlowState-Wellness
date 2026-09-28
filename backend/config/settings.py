@@ -157,13 +157,9 @@ MAILERS = {
 }
 
 CORS_ALLOWED_ORIGINS = [
-    origin.strip()
-    for origin in os.getenv("CORS_ALLOWED_ORIGINS", "").split(",")
-    if origin.strip()
+    "https://flow-state-wellness.vercel.app",
 ]
 
 CSRF_TRUSTED_ORIGINS = [
-    origin.strip()
-    for origin in os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",")
-    if origin.strip()
+    "https://flow-state-wellness.vercel.app",
 ]
