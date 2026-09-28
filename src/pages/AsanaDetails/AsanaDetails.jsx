@@ -16,7 +16,9 @@ function AsanaDetails() {
         setLoading(true);
         setError("");
 
-        const response = await fetch(`${API_BASE_URL}/api/yoga/asanas/...`);
+        const response = await fetch(
+          `${API_BASE_URL}/api/yoga/asanas/${id}/`
+        );
 
         if (!response.ok) {
           throw new Error("Asana not found.");
