@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Navbar from "../../components/Navbar/Navbar";
 
-const API_BASE = "http://127.0.0.1:8000/api/yoga";
+const API_BASE = `${API_BASE_URL}/api/yoga`;
 
 const navItems = [
   { id: "sos", label: "SOS Reset", icon: "⚡" },
