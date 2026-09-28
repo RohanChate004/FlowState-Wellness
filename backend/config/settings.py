@@ -8,7 +8,8 @@ https://docs.djangoproject.com/en/6.1/topics/settings/
 
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.1/ref/settings/
-"""
+""" 
+
 import dj_database_url
 from pathlib import Path
 import os
@@ -157,10 +158,7 @@ MAILERS = {
 
 CORS_ALLOWED_ORIGINS = [
     origin.strip()
-    for origin in os.getenv(
-        "CORS_ALLOWED_ORIGINS",
-        "http://localhost:5173,http://127.0.0.1:5173"
-    ).split(",")
+    for origin in os.getenv("CORS_ALLOWED_ORIGINS", "").split(",")
     if origin.strip()
 ]
 
