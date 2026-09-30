@@ -236,7 +236,10 @@ AUTHENTICATION_BACKENDS = [
 # LOGIN REDIRECT
 # =========================================================
 
-LOGIN_REDIRECT_URL = LOGIN_REDIRECT_URL = "http://localhost:5173/login?google=success"
+LOGIN_REDIRECT_URL = os.getenv(
+    "LOGIN_REDIRECT_URL",
+    "http://localhost:5173/login?google=success"
+)
 LOGOUT_REDIRECT_URL = "http://localhost:5173/"
 
 
