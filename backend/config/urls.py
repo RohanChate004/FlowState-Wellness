@@ -27,4 +27,7 @@ urlpatterns = [
 
     # FlowState AI
     path("api/ai-wellness/", include("ai_wellness.urls")),
+
+     # Google / django-allauth
+    path("accounts/", include("allauth.urls")),
 ]

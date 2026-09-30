@@ -36,6 +36,10 @@ DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
+# Google Sign-In
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
+
 
 # =========================================================
 # ALLOWED HOSTS
@@ -228,12 +232,52 @@ AUTHENTICATION_BACKENDS = [
     "allauth.account.auth_backends.AuthenticationBackend",
 ]
 
+# =========================================================
+# LOGIN REDIRECT
+# =========================================================
+
+LOGIN_REDIRECT_URL = LOGIN_REDIRECT_URL = "http://localhost:5173/login?google=success"
+LOGOUT_REDIRECT_URL = "http://localhost:5173/"
+
 
 # =========================================================
 # DJANGO SITES
 # =========================================================
 
 SITE_ID = 1
+
+
+# =========================================================
+# GOOGLE SOCIAL LOGIN
+# =========================================================
+
+SOCIALACCOUNT_PROVIDERS = {
+    "google": {
+        "APP": {
+            "client_id": GOOGLE_CLIENT_ID,
+            "secret": GOOGLE_CLIENT_SECRET,
+            "key": "",
+        },
+
+        "SCOPE": [
+            "profile",
+            "email",
+        ],
+
+        "AUTH_PARAMS": {
+            "access_type": "online",
+        },
+
+        # Allow Google to authenticate an existing
+        # FlowState account when the verified email matches.
+        "EMAIL_AUTHENTICATION": True,
+    }
+}
+
+# Automatically connect the Google account
+# to the matching existing FlowState account.
+SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
+SOCIALACCOUNT_LOGIN_ON_GET = True
 
 
 # =========================================================
@@ -256,6 +300,8 @@ CORS_ALLOWED_ORIGINS = [
     "https://flow-state-wellness.vercel.app",
 ]
 
+CORS_ALLOW_CREDENTIALS = True
+
 
 # =========================================================
 # CSRF
@@ -269,3 +315,28 @@ CSRF_TRUSTED_ORIGINS = [
     # Production
     "https://flow-state-wellness.vercel.app",
 ]
+
+# =========================================================
+# TEMPORARY AUTH DEBUG LOGGING
+# =========================================================
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+        },
+    },
+    "loggers": {
+        "allauth": {
+            "handlers": ["console"],
+            "level": "DEBUG",
+        },
+        "django.request": {
+            "handlers": ["console"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+    },
+}

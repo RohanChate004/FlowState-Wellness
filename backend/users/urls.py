@@ -5,6 +5,7 @@ from .views import (
     LoginView,
     MeView,
     DailyWellnessView,
+    GoogleJWTView,
 )
 
 from rest_framework_simplejwt.views import TokenRefreshView
@@ -40,4 +41,10 @@ urlpatterns = [
         TokenRefreshView.as_view(),
         name="token_refresh",
     ),
+
+    path(
+    "google/token/",
+    GoogleJWTView.as_view(),
+    name="google_token",
+),
 ]
