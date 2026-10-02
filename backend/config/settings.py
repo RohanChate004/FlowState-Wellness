@@ -39,13 +39,7 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 # Google Sign-In
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
-print(
-    "GOOGLE CONFIG:",
-    "CLIENT_ID_SET=",
-    bool(GOOGLE_CLIENT_ID),
-    "CLIENT_SECRET_SET=",
-    bool(GOOGLE_CLIENT_SECRET),
-)
+
 
 
 # =========================================================
@@ -311,6 +305,8 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 CORS_ALLOW_CREDENTIALS = True
+SESSION_COOKIE_SAMESITE = "None"
+SESSION_COOKIE_SECURE = True
 
 
 # =========================================================
