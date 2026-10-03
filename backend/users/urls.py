@@ -5,6 +5,7 @@ from .views import (
     LoginView,
     MeView,
     DailyWellnessView,
+    ActivityHistoryView,
     GoogleJWTView,
 )
 
@@ -46,5 +47,11 @@ urlpatterns = [
     "google/token/",
     GoogleJWTView.as_view(),
     name="google_token",
+),
+
+path(
+    "activity-history/",
+    ActivityHistoryView.as_view(),
+    name="activity-history",
 ),
 ]

@@ -1,3 +1,5 @@
+from django.db.models import Sum
+from meditation.models import MeditationSession
 from datetime import date
 
 from django.contrib.auth import logout
@@ -143,3 +145,73 @@ class DailyWellnessView(APIView):
         serializer = DailyWellnessSerializer(wellness)
 
         return Response(serializer.data)
+
+class ActivityHistoryView(APIView):
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+
+        wellness_records = DailyWellness.objects.filter(
+            user=request.user
+        ).order_by("date")
+
+        meditation_sessions = MeditationSession.objects.filter(
+            user=request.user
+        )
+
+        meditation_by_date = {}
+
+        for session in meditation_sessions:
+
+            date_key = session.completed_at.date().isoformat()
+
+            if date_key not in meditation_by_date:
+                meditation_by_date[date_key] = 0
+
+            meditation_by_date[date_key] += 1
+
+
+        history = []
+
+        for wellness in wellness_records:
+
+            date_key = wellness.date.isoformat()
+
+            meditation_count = meditation_by_date.get(
+                date_key,
+                0
+            )
+
+            session_count = wellness.sessions or 0
+
+            total_activities = (
+                session_count +
+                meditation_count
+            )
+
+            history.append({
+
+                "date": date_key,
+
+                "sessions": session_count,
+
+                "meditation_sessions": meditation_count,
+
+                "total_activities": total_activities,
+
+                "sleep_hours": float(
+                    wellness.sleep_hours or 0
+                ),
+
+                "water_cups": wellness.water_cups or 0,
+
+                "streak_days": wellness.streak_days or 0,
+
+                "wellness_score": wellness.wellness_score or 0,
+
+            })
+
+        return Response({
+            "history": history
+        })
