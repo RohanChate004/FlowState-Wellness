@@ -5,24 +5,31 @@ import Navbar from "../../components/Navbar/Navbar";
 import Footer from "../../components/Footer/Footer";
 
 function Dashboard() {
+  const navigate = useNavigate();
+
   const [user, setUser] = useState(null);
   const [wellness, setWellness] = useState(null);
   const [meditationStats, setMeditationStats] = useState(null);
   const [activityHistory, setActivityHistory] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [sleepHours, setSleepHours] = useState("");
+  const [waterCups, setWaterCups] = useState("");
 
-  const navigate = useNavigate();
+  const [savingWellness, setSavingWellness] = useState(false);
+  const [wellnessMessage, setWellnessMessage] = useState("");
+  const [selectedDay, setSelectedDay] = useState(null);
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  // ============================================================
+  // AUTH
+  // ============================================================
 
   const accessToken = localStorage.getItem("accessToken");
 
-  const authHeaders = {
-    Authorization: `Bearer ${accessToken}`,
-    "Content-Type": "application/json",
-  };
-
-  /* --------------------------------------------------
-     LOGOUT
-  -------------------------------------------------- */
+  // ============================================================
+  // LOGOUT
+  // ============================================================
 
   const handleLogout = () => {
     localStorage.removeItem("accessToken");
@@ -31,18 +38,28 @@ function Dashboard() {
     navigate("/");
   };
 
-  /* --------------------------------------------------
-     FETCH DASHBOARD DATA
-  -------------------------------------------------- */
+  // ============================================================
+  // FETCH DASHBOARD DATA
+  // ============================================================
 
   useEffect(() => {
     const fetchDashboardData = async () => {
-      if (!accessToken) {
+      const token = localStorage.getItem("accessToken");
+
+      if (!token) {
         navigate("/login");
         return;
       }
 
+      const headers = {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      };
+
       try {
+        setLoading(true);
+        setError("");
+
         const [
           userResponse,
           wellnessResponse,
@@ -50,46 +67,68 @@ function Dashboard() {
           historyResponse,
         ] = await Promise.all([
           fetch(`${API_BASE_URL}/api/me/`, {
-            headers: authHeaders,
+            headers,
           }),
 
           fetch(`${API_BASE_URL}/api/wellness/`, {
-            headers: authHeaders,
+            headers,
           }),
 
           fetch(`${API_BASE_URL}/api/meditation/stats/`, {
-            headers: authHeaders,
+            headers,
           }),
 
           fetch(`${API_BASE_URL}/api/activity-history/`, {
-            headers: authHeaders,
+            headers,
           }),
         ]);
+
+        // --------------------------------------------------------
+        // USER
+        // --------------------------------------------------------
 
         if (userResponse.ok) {
           const userData = await userResponse.json();
           setUser(userData);
         }
 
+        // --------------------------------------------------------
+        // WELLNESS
+        // --------------------------------------------------------
+
         if (wellnessResponse.ok) {
-          const wellnessData = await wellnessResponse.json();
+          const wellnessData =
+            await wellnessResponse.json();
+
           setWellness(wellnessData);
+
+          setSleepHours(
+            wellnessData.sleep_hours ?? ""
+          );
+
+          setWaterCups(
+            wellnessData.water_cups ?? ""
+          );
         }
+        
+        // --------------------------------------------------------
+        // MEDITATION
+        // --------------------------------------------------------
 
         if (meditationResponse.ok) {
-          const meditationData = await meditationResponse.json();
+          const meditationData =
+            await meditationResponse.json();
+
           setMeditationStats(meditationData);
         }
 
-        if (historyResponse.ok) {
-          const historyData = await historyResponse.json();
+        // --------------------------------------------------------
+        // ACTIVITY HISTORY
+        // --------------------------------------------------------
 
-          /*
-            Supports both:
-            { history: [...] }
-            and
-            [...]
-          */
+        if (historyResponse.ok) {
+          const historyData =
+            await historyResponse.json();
 
           setActivityHistory(
             Array.isArray(historyData)
@@ -97,34 +136,76 @@ function Dashboard() {
               : historyData.history || []
           );
         }
-      } catch (error) {
-        console.error("Dashboard error:", error);
+      } catch (err) {
+        console.error(
+          "Dashboard error:",
+          err
+        );
+
+        setError(
+          "Unable to load your dashboard."
+        );
       } finally {
         setLoading(false);
       }
     };
 
     fetchDashboardData();
-  }, []);
+  }, [navigate]);
 
-  /* --------------------------------------------------
-     ACTIVITY HELPERS
-  -------------------------------------------------- */
+  // ============================================================
+  // HISTORY MAP
+  // ============================================================
+
+  const historyMap = useMemo(() => {
+    const map = {};
+
+    activityHistory.forEach((item) => {
+      map[item.date] = item;
+    });
+
+    return map;
+  }, [activityHistory]);
+
+  // ============================================================
+  // ACTIVITY TOTAL
+  // ============================================================
+
+  const getActivityTotal = (activity) => {
+    if (!activity) {
+      return 0;
+    }
+
+    return Number(
+      activity.total_activities || 0
+    );
+  };
+
+  // ============================================================
+  // ACTIVITY LEVEL
+  // ============================================================
 
   const getActivityLevel = (activity) => {
-    if (!activity) return 0;
+    const total = getActivityTotal(activity);
 
-    const total =
-      Number(activity.total_activities || 0) +
-      Number(activity.sessions || 0) +
-      Number(activity.meditation_sessions || 0);
+    if (total === 0) {
+      return 0;
+    }
 
-    if (total === 0) return 0;
-    if (total === 1) return 1;
-    if (total <= 3) return 2;
+    if (total === 1) {
+      return 1;
+    }
+
+    if (total <= 3) {
+      return 2;
+    }
 
     return 3;
   };
+
+  // ============================================================
+  // ACTIVITY STYLE
+  // ============================================================
 
   const getActivityClasses = (level) => {
     switch (level) {
@@ -142,89 +223,146 @@ function Dashboard() {
     }
   };
 
+  // ============================================================
+  // DATE HELPERS
+  // ============================================================
+
+  const createDateKey = (date) => {
+    const year = date.getFullYear();
+
+    const month = String(
+      date.getMonth() + 1
+    ).padStart(2, "0");
+
+    const day = String(
+      date.getDate()
+    ).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+  };
+
   const formatDate = (dateString) => {
-    if (!dateString) return "";
+    if (!dateString) {
+      return "";
+    }
 
-    const date = new Date(`${dateString}T00:00:00`);
+    const date = new Date(
+      `${dateString}T00:00:00`
+    );
 
-    return date.toLocaleDateString("en-IN", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
+    return date.toLocaleDateString(
+      "en-IN",
+      {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      }
+    );
   };
 
   const getRelativeDate = (dateString) => {
-    if (!dateString) return "";
+    if (!dateString) {
+      return "";
+    }
 
-    const date = new Date(`${dateString}T00:00:00`);
-    const today = new Date();
-
-    today.setHours(0, 0, 0, 0);
-
-    const difference = Math.floor(
-      (today - date) / (1000 * 60 * 60 * 24)
+    const selectedDate = new Date(
+      `${dateString}T00:00:00`
     );
 
-    if (difference === 0) return "Today";
-    if (difference === 1) return "Yesterday";
+    const today = new Date();
+
+    today.setHours(
+      0,
+      0,
+      0,
+      0
+    );
+
+    const difference = Math.floor(
+      (today - selectedDate) /
+      (1000 * 60 * 60 * 24)
+    );
+
+    if (difference === 0) {
+      return "Today";
+    }
+
+    if (difference === 1) {
+      return "Yesterday";
+    }
+
+    if (
+      difference > 1 &&
+      difference < 7
+    ) {
+      return `${difference} days ago`;
+    }
 
     return formatDate(dateString);
   };
 
-  /* --------------------------------------------------
-     LAST 12 WEEKS ACTIVITY
-  -------------------------------------------------- */
+  // ============================================================
+  // ACTIVITY CALENDAR
+  // ============================================================
 
   const activityCalendar = useMemo(() => {
-    const historyMap = {};
-
-    activityHistory.forEach((item) => {
-      historyMap[item.date] = item;
-    });
-
     const today = new Date();
 
-    today.setHours(0, 0, 0, 0);
+    today.setHours(
+      0,
+      0,
+      0,
+      0
+    );
 
     /*
-      Start from Sunday 11 weeks ago.
-      This gives us approximately 12 weeks.
-    */
+     * Start from Sunday.
+     * 12 weeks = 84 days.
+     */
 
     const startDate = new Date(today);
 
     startDate.setDate(
-      today.getDate() - today.getDay() - 77
+      today.getDate() -
+      today.getDay() -
+      77
     );
 
     const weeks = [];
 
-    for (let week = 0; week < 12; week++) {
+    for (
+      let week = 0;
+      week < 12;
+      week++
+    ) {
       const currentWeek = [];
 
-      for (let day = 0; day < 7; day++) {
-        const currentDate = new Date(startDate);
+      for (
+        let day = 0;
+        day < 7;
+        day++
+      ) {
+        const currentDate =
+          new Date(startDate);
 
         currentDate.setDate(
-          startDate.getDate() + week * 7 + day
+          startDate.getDate() +
+          week * 7 +
+          day
         );
 
-        const year = currentDate.getFullYear();
-
-        const month = String(
-          currentDate.getMonth() + 1
-        ).padStart(2, "0");
-
-        const date = String(
-          currentDate.getDate()
-        ).padStart(2, "0");
-
-        const dateKey = `${year}-${month}-${date}`;
+        const dateKey =
+          createDateKey(
+            currentDate
+          );
 
         currentWeek.push({
           date: dateKey,
-          activity: historyMap[dateKey] || null,
+          activity:
+            historyMap[dateKey] ||
+            null,
+          isFuture:
+            currentDate > today,
         });
       }
 
@@ -232,63 +370,162 @@ function Dashboard() {
     }
 
     return weeks;
-  }, [activityHistory]);
+  }, [historyMap]);
 
-  /* --------------------------------------------------
-     ACTIVITY TOTALS
-  -------------------------------------------------- */
+  // ============================================================
+  // MONTH LABELS
+  // ============================================================
+
+  const monthLabels = useMemo(() => {
+    const labels = [];
+
+    activityCalendar.forEach(
+      (week, index) => {
+        const firstDay =
+          week[0]?.date;
+
+        if (!firstDay) {
+          return;
+        }
+
+        const date = new Date(
+          `${firstDay}T00:00:00`
+        );
+
+        const month =
+          date.toLocaleDateString(
+            "en-IN",
+            {
+              month: "short",
+            }
+          );
+
+        /*
+         * Only show a month label when
+         * the month changes.
+         */
+
+        if (
+          index === 0 ||
+          new Date(
+            `${activityCalendar[index - 1][0].date}T00:00:00`
+          ).getMonth() !== date.getMonth()
+        ) {
+          labels.push({
+            index,
+            label: month,
+          });
+        }
+      }
+    );
+
+    return labels;
+  }, [activityCalendar]);
+
+  // ============================================================
+  // ACTIVITY STATS
+  // ============================================================
 
   const activeDays = activityHistory.filter(
     (item) =>
-      Number(item.total_activities || 0) > 0 ||
-      Number(item.sessions || 0) > 0 ||
-      Number(item.meditation_sessions || 0) > 0
+      getActivityTotal(item) > 0
   ).length;
 
-  const totalActivities = activityHistory.reduce(
-    (total, item) =>
-      total +
-      Number(item.total_activities || 0),
-    0
-  );
+  const totalActivities =
+    activityHistory.reduce(
+      (total, item) =>
+        total +
+        getActivityTotal(item),
+      0
+    );
 
-  /* --------------------------------------------------
-     LOADING
-  -------------------------------------------------- */
+  const totalYogaSessions =
+    activityHistory.reduce(
+      (total, item) =>
+        total +
+        Number(
+          item.yoga_sessions || 0
+        ),
+      0
+    );
+
+  const totalMeditationSessions =
+    activityHistory.reduce(
+      (total, item) =>
+        total +
+        Number(
+          item.meditation_sessions ||
+          0
+        ),
+      0
+    );
+
+  // ============================================================
+  // RECENT ACTIVITY
+  // ============================================================
+
+  const recentActivities = useMemo(() => {
+    return [...activityHistory]
+      .filter(
+        (item) =>
+          getActivityTotal(item) > 0
+      )
+      .sort(
+        (a, b) =>
+          new Date(
+            `${b.date}T00:00:00`
+          ) -
+          new Date(
+            `${a.date}T00:00:00`
+          )
+      )
+      .slice(0, 5);
+  }, [activityHistory]);
+
+  // ============================================================
+  // LOADING
+  // ============================================================
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-stone-50 flex items-center justify-center">
-        <div className="text-center">
+      <div className="min-h-screen bg-[#f7f8f5]">
+        <Navbar />
 
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-green-100 text-2xl">
-            🌿
+        <main className="flex min-h-[70vh] items-center justify-center px-6">
+          <div className="text-center">
+
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-green-100 text-xl">
+              🌿
+            </div>
+
+            <p className="mt-4 text-sm font-medium text-gray-600">
+              Loading your FlowState...
+            </p>
+
           </div>
+        </main>
 
-          <p className="text-sm font-medium text-gray-500">
-            Preparing your wellness space...
-          </p>
-
-        </div>
+        <Footer />
       </div>
     );
   }
 
-  /* --------------------------------------------------
-     DASHBOARD
-  -------------------------------------------------- */
+  // ============================================================
+  // MAIN DASHBOARD
+  // ============================================================
 
   return (
-    <>
+    <div className="min-h-screen bg-[#f7f8f5] text-gray-900">
+
       <Navbar />
 
-      <main className="min-h-screen bg-[#f7f8f5]">
+      <main className="px-4 py-8 sm:px-6 lg:px-10">
 
-        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl">
 
-          {/* ============================================
+          {/* ==================================================
               HEADER
-          ============================================ */}
+          =================================================== */}
 
           <section className="mb-8">
 
@@ -296,284 +533,345 @@ function Dashboard() {
 
               <div>
 
-                <p className="mb-2 text-sm font-medium text-green-700">
-                  YOUR FLOWSTATE
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-green-700">
+                  Your FlowState
                 </p>
 
-                <h1 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
-                  Welcome back, {user?.name || "User"} 👋
+                <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
+                  Welcome back
+                  {user?.name
+                    ? `, ${user.name}`
+                    : ""}
+                  .
                 </h1>
 
                 <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-500">
-                  Keep taking small steps. Your progress is built one
-                  mindful day at a time.
+                  Keep moving, breathing, and
+                  checking in with yourself.
+                  Your progress lives here.
                 </p>
 
               </div>
 
               <button
-                type="button"
                 onClick={handleLogout}
-                className="w-fit rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-600 transition hover:border-gray-300 hover:bg-gray-50"
+                className="rounded-full border border-gray-200 bg-white px-5 py-2.5 text-sm font-semibold text-gray-700 transition hover:border-gray-300 hover:bg-gray-50"
               >
-                Log out
+                Logout
               </button>
 
             </div>
 
           </section>
 
+          {/* ==================================================
+              ERROR
+          =================================================== */}
 
-          {/* ============================================
+          {error && (
+            <div className="mb-6 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {error}
+            </div>
+          )}
+
+          {/* ==================================================
               QUICK STATS
-          ============================================ */}
+          =================================================== */}
 
-          <section className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
 
-            {/* Today's Sessions */}
+            {/* Total Activities */}
 
-            <div className="rounded-2xl border border-gray-200 bg-white p-5">
+            <div className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-gray-100">
 
-              <div className="mb-4 flex items-center justify-between">
+              <div className="flex items-start justify-between">
 
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-green-50 text-lg">
-                  🧘
+                <div>
+
+                  <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+                    Total Activity
+                  </p>
+
+                  <p className="mt-3 text-3xl font-bold">
+                    {totalActivities}
+                  </p>
+
                 </div>
 
-                <span className="text-[11px] font-semibold tracking-wider text-gray-400">
-                  TODAY
-                </span>
-
-              </div>
-
-              <p className="text-sm text-gray-500">
-                Sessions
-              </p>
-
-              <p className="mt-1 text-3xl font-bold text-gray-900">
-                {wellness?.sessions ?? 0}
-              </p>
-
-              <p className="mt-1 text-xs text-gray-400">
-                Completed today
-              </p>
-
-            </div>
-
-
-            {/* Meditation */}
-
-            <div className="rounded-2xl border border-gray-200 bg-white p-5">
-
-              <div className="mb-4 flex items-center justify-between">
-
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-lg">
-                  🧠
-                </div>
-
-                <span className="text-[11px] font-semibold tracking-wider text-gray-400">
-                  MEDITATION
-                </span>
-
-              </div>
-
-              <p className="text-sm text-gray-500">
-                Total Sessions
-              </p>
-
-              <p className="mt-1 text-3xl font-bold text-gray-900">
-                {meditationStats?.total_sessions ?? 0}
-              </p>
-
-              <p className="mt-1 text-xs text-gray-400">
-                Lifetime sessions
-              </p>
-
-            </div>
-
-
-            {/* Active Days */}
-
-            <div className="rounded-2xl border border-gray-200 bg-white p-5">
-
-              <div className="mb-4 flex items-center justify-between">
-
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-50 text-lg">
-                  🔥
-                </div>
-
-                <span className="text-[11px] font-semibold tracking-wider text-gray-400">
-                  CONSISTENCY
-                </span>
-
-              </div>
-
-              <p className="text-sm text-gray-500">
-                Active Days
-              </p>
-
-              <p className="mt-1 text-3xl font-bold text-gray-900">
-                {activeDays}
-              </p>
-
-              <p className="mt-1 text-xs text-gray-400">
-                Days with activity
-              </p>
-
-            </div>
-
-
-            {/* Wellness Score */}
-
-            <div className="rounded-2xl border border-gray-200 bg-white p-5">
-
-              <div className="mb-4 flex items-center justify-between">
-
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-lg">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-green-50 text-xl">
                   🌱
                 </div>
 
-                <span className="text-[11px] font-semibold tracking-wider text-gray-400">
-                  SCORE
-                </span>
+              </div>
+
+              <p className="mt-3 text-xs text-gray-500">
+                Saved wellness activities
+              </p>
+
+            </div>
+
+            {/* Active Days */}
+
+            <div className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-gray-100">
+
+              <div className="flex items-start justify-between">
+
+                <div>
+
+                  <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+                    Active Days
+                  </p>
+
+                  <p className="mt-3 text-3xl font-bold">
+                    {activeDays}
+                  </p>
+
+                </div>
+
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-green-50 text-xl">
+                  📅
+                </div>
 
               </div>
 
-              <p className="text-sm text-gray-500">
-                Wellness Score
+              <p className="mt-3 text-xs text-gray-500">
+                Days with recorded activity
               </p>
 
-              <p className="mt-1 text-3xl font-bold text-gray-900">
-                {wellness?.wellness_score ?? 0}
-                <span className="ml-1 text-sm font-medium text-gray-400">
-                  /100
-                </span>
+            </div>
+
+            {/* Yoga */}
+
+            <div className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-gray-100">
+
+              <div className="flex items-start justify-between">
+
+                <div>
+
+                  <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+                    Yoga
+                  </p>
+
+                  <p className="mt-3 text-3xl font-bold">
+                    {totalYogaSessions}
+                  </p>
+
+                </div>
+
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-green-50 text-xl">
+                  🧘
+                </div>
+
+              </div>
+
+              <p className="mt-3 text-xs text-gray-500">
+                Completed yoga practices
               </p>
 
-              <p className="mt-1 text-xs text-gray-400">
-                Today's wellness
+            </div>
+
+            {/* Meditation */}
+
+            <div className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-gray-100">
+
+              <div className="flex items-start justify-between">
+
+                <div>
+
+                  <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+                    Meditation
+                  </p>
+
+                  <p className="mt-3 text-3xl font-bold">
+                    {totalMeditationSessions}
+                  </p>
+
+                </div>
+
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-green-50 text-xl">
+                  🧘‍♂️
+                </div>
+
+              </div>
+
+              <p className="mt-3 text-xs text-gray-500">
+                Completed meditation sessions
               </p>
 
             </div>
 
           </section>
 
+          {/* ==================================================
+              ACTIVITY HISTORY
+          =================================================== */}
 
-          {/* ============================================
-              GITHUB STYLE ACTIVITY
-          ============================================ */}
+          <section className="mt-6 rounded-3xl bg-white p-5 shadow-sm ring-1 ring-gray-100 sm:p-7">
 
-          <section className="mb-8 rounded-3xl border border-gray-200 bg-white p-5 sm:p-7">
-
-            <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
 
               <div>
 
-                <div className="mb-2 flex items-center gap-2">
+                <p className="text-xs font-semibold uppercase tracking-wider text-green-700">
+                  Activity History
+                </p>
 
-                  <span className="h-2 w-2 rounded-full bg-green-600"></span>
-
-                  <p className="text-xs font-bold tracking-widest text-green-700">
-                    ACTIVITY HISTORY
-                  </p>
-
-                </div>
-
-                <h2 className="text-2xl font-bold text-gray-900">
+                <h2 className="mt-1 text-2xl font-bold">
                   Your wellness journey
                 </h2>
 
                 <p className="mt-1 text-sm text-gray-500">
-                  Every square represents a day in your FlowState journey.
+                  Every practice you complete becomes part
+                  of your personal history.
                 </p>
 
               </div>
 
-              <div className="text-sm text-gray-500">
-
-                <span className="font-semibold text-gray-800">
-                  {totalActivities}
-                </span>{" "}
-                activities recorded
-
+              <div className="text-xs text-gray-400">
+                Last 12 weeks
               </div>
 
             </div>
 
-
             {/* Calendar */}
 
-            <div className="overflow-x-auto pb-2">
+            <div className="mt-7 overflow-x-auto pb-2">
 
               <div className="min-w-[720px]">
 
                 {/* Month labels */}
 
-                <div className="mb-2 ml-9 flex justify-between pr-1 text-[11px] font-medium text-gray-400">
+                <div className="ml-8 flex h-6">
 
-                  <span>12 weeks ago</span>
-                  <span>8 weeks ago</span>
-                  <span>4 weeks ago</span>
-                  <span>Today</span>
+                  {monthLabels.map(
+                    (item) => (
+                      <div
+                        key={`${item.label}-${item.index}`}
+                        className="text-[10px] font-medium text-gray-400"
+                        style={{
+                          width: `${100 / 12}%`,
+                          paddingLeft:
+                            item.index === 0
+                              ? 0
+                              : 4,
+                        }}
+                      >
+                        {item.label}
+                      </div>
+                    )
+                  )}
 
                 </div>
 
-
-                <div className="flex gap-2">
+                <div className="flex">
 
                   {/* Weekday labels */}
 
-                  <div className="flex w-7 flex-col justify-between py-1 text-[10px] text-gray-400">
+                  <div className="mr-2 grid w-6 grid-rows-7 gap-1.5 text-[9px] text-gray-400">
 
-                    <span>Sun</span>
-                    <span>Tue</span>
-                    <span>Thu</span>
-                    <span>Sat</span>
+                    <span></span>
+
+                    <span>Mon</span>
+
+                    <span></span>
+
+                    <span>Wed</span>
+
+                    <span></span>
+
+                    <span>Fri</span>
+
+                    <span></span>
+
+                  </div>
+
+                  {/* Activity columns */}
+
+                  <div className="flex gap-1.5">
+
+                    {activityCalendar.map(
+                      (week, weekIndex) => (
+                        <div
+                          key={weekIndex}
+                          className="grid grid-rows-7 gap-1.5"
+                        >
+
+                          {week.map(
+                            (day) => {
+                              const level =
+                                getActivityLevel(
+                                  day.activity
+                                );
+
+                              const total =
+                                getActivityTotal(
+                                  day.activity
+                                );
+
+                              return (
+                                <button
+                                  key={day.date}
+                                  type="button"
+                                  disabled={
+                                    day.isFuture
+                                  }
+                                  title={
+                                    day.isFuture
+                                      ? `${formatDate(
+                                        day.date
+                                      )} — Future`
+                                      : `${formatDate(
+                                        day.date
+                                      )} — ${total} ${total ===
+                                        1
+                                        ? "activity"
+                                        : "activities"
+                                      }`
+                                  }
+                                  onClick={() =>
+                                    !day.isFuture &&
+                                    setSelectedDay(
+                                      day.date
+                                    )
+                                  }
+                                  className={`h-3.5 w-3.5 rounded-[3px] border transition ${day.isFuture
+                                      ? "cursor-default border-gray-100 bg-gray-50"
+                                      : getActivityClasses(
+                                        level
+                                      )
+                                    } ${selectedDay ===
+                                      day.date
+                                      ? "ring-2 ring-green-700 ring-offset-1"
+                                      : ""
+                                    }`}
+                                />
+                              );
+                            }
+                          )}
+
+                        </div>
+                      )
+                    )}
 
                   </div>
 
+                </div>
 
-                  {/* Activity grid */}
+                {/* Legend */}
 
-                  <div className="flex flex-1 gap-1.5">
+                <div className="mt-5 flex items-center justify-end gap-2 text-[10px] text-gray-400">
 
-                    {activityCalendar.map((week, weekIndex) => (
+                  <span>Less</span>
 
-                      <div
-                        key={weekIndex}
-                        className="flex flex-1 flex-col gap-1.5"
-                      >
+                  <span className="h-3.5 w-3.5 rounded-[3px] border border-gray-200 bg-gray-100"></span>
 
-                        {week.map((day) => {
+                  <span className="h-3.5 w-3.5 rounded-[3px] border border-green-200 bg-green-100"></span>
 
-                          const level = getActivityLevel(
-                            day.activity
-                          );
+                  <span className="h-3.5 w-3.5 rounded-[3px] border border-green-300 bg-green-300"></span>
 
-                          return (
-                            <div
-                              key={day.date}
-                              title={
-                                day.activity
-                                  ? `${formatDate(day.date)} • ${
-                                      day.activity.total_activities ||
-                                      0
-                                    } activities`
-                                  : `${formatDate(day.date)} • No activity`
-                              }
-                              className={`h-4 w-full min-w-[12px] rounded-[3px] border ${getActivityClasses(
-                                level
-                              )}`}
-                            />
-                          );
+                  <span className="h-3.5 w-3.5 rounded-[3px] border border-green-600 bg-green-600"></span>
 
-                        })}
-
-                      </div>
-
-                    ))}
-
-                  </div>
+                  <span>More</span>
 
                 </div>
 
@@ -581,124 +879,204 @@ function Dashboard() {
 
             </div>
 
+            {/* =================================================
+                SELECTED DAY
+            ================================================== */}
 
-            {/* Legend */}
+            {selectedDay && (
+              <div className="mt-6 rounded-2xl border border-green-100 bg-green-50 p-5">
 
-            <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 
-              <div className="flex items-center gap-2 text-xs text-gray-400">
+                  <div>
 
-                <span>Less</span>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-green-700">
+                      {getRelativeDate(
+                        selectedDay
+                      )}
+                    </p>
 
-                <span className="h-3 w-3 rounded-[3px] border border-gray-200 bg-gray-100"></span>
+                    <h3 className="mt-1 text-lg font-bold">
+                      {formatDate(
+                        selectedDay
+                      )}
+                    </h3>
 
-                <span className="h-3 w-3 rounded-[3px] border border-green-200 bg-green-100"></span>
+                  </div>
 
-                <span className="h-3 w-3 rounded-[3px] bg-green-300"></span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setSelectedDay(null)
+                    }
+                    className="text-xs font-semibold text-gray-500 hover:text-gray-800"
+                  >
+                    Close
+                  </button>
 
-                <span className="h-3 w-3 rounded-[3px] bg-green-600"></span>
+                </div>
 
-                <span>More</span>
+                {historyMap[
+                  selectedDay
+                ] ? (
+                  <div className="mt-5 grid gap-3 sm:grid-cols-3">
+
+                    <div className="rounded-2xl bg-white p-4">
+
+                      <p className="text-xs text-gray-400">
+                        Yoga
+                      </p>
+
+                      <p className="mt-1 text-xl font-bold">
+                        {
+                          historyMap[
+                            selectedDay
+                          ].yoga_sessions || 0
+                        }
+                      </p>
+
+                      <p className="text-[11px] text-gray-500">
+                        practices
+                      </p>
+
+                    </div>
+
+                    <div className="rounded-2xl bg-white p-4">
+
+                      <p className="text-xs text-gray-400">
+                        Meditation
+                      </p>
+
+                      <p className="mt-1 text-xl font-bold">
+                        {
+                          historyMap[
+                            selectedDay
+                          ].meditation_sessions ||
+                          0
+                        }
+                      </p>
+
+                      <p className="text-[11px] text-gray-500">
+                        sessions
+                      </p>
+
+                    </div>
+
+                    <div className="rounded-2xl bg-white p-4">
+
+                      <p className="text-xs text-gray-400">
+                        Total Activity
+                      </p>
+
+                      <p className="mt-1 text-xl font-bold">
+                        {
+                          historyMap[
+                            selectedDay
+                          ].total_activities ||
+                          0
+                        }
+                      </p>
+
+                      <p className="text-[11px] text-gray-500">
+                        activities
+                      </p>
+
+                    </div>
+
+                  </div>
+                ) : (
+                  <p className="mt-4 text-sm text-gray-500">
+                    No activity recorded on this day.
+                  </p>
+                )}
 
               </div>
-
-              <p className="text-xs text-gray-400">
-                Activity is saved to your account
-              </p>
-
-            </div>
+            )}
 
           </section>
 
+          {/* ==================================================
+              TODAY SNAPSHOT
+          =================================================== */}
 
-          {/* ============================================
-              TODAY'S WELLNESS
-          ============================================ */}
+          <section className="mt-6 grid gap-6 lg:grid-cols-5">
 
-          <section className="mb-8 grid gap-6 lg:grid-cols-3">
+            <div className="lg:col-span-3 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
 
-            {/* Wellness card */}
+              <div>
 
-            <div className="rounded-3xl border border-gray-200 bg-white p-6 lg:col-span-2">
-
-              <div className="mb-6">
-
-                <p className="text-xs font-bold tracking-widest text-green-700">
-                  TODAY
+                <p className="text-xs font-semibold uppercase tracking-wider text-green-700">
+                  Today
                 </p>
 
-                <h2 className="mt-2 text-2xl font-bold text-gray-900">
+                <h2 className="mt-1 text-2xl font-bold">
                   Your wellness snapshot
                 </h2>
 
-                <p className="mt-1 text-sm text-gray-500">
-                  A simple view of the habits you recorded today.
-                </p>
-
               </div>
 
-
-              <div className="grid gap-4 sm:grid-cols-3">
+              <div className="mt-6 grid gap-3 sm:grid-cols-3">
 
                 {/* Sleep */}
 
-                <div className="rounded-2xl bg-indigo-50 p-5">
+                <div className="rounded-2xl bg-stone-50 p-5">
 
-                  <div className="mb-4 text-xl">
+                  <div className="text-2xl">
                     😴
                   </div>
 
-                  <p className="text-sm font-medium text-indigo-700">
+                  <p className="mt-4 text-xs text-gray-400">
                     Sleep
                   </p>
 
-                  <p className="mt-1 text-2xl font-bold text-gray-900">
-                    {wellness?.sleep_hours ?? 0}
-                    <span className="ml-1 text-sm font-medium text-gray-500">
+                  <p className="mt-1 text-xl font-bold">
+                    {wellness?.sleep_hours ||
+                      0}
+                    <span className="ml-1 text-xs font-medium text-gray-400">
                       hrs
                     </span>
                   </p>
 
                 </div>
 
-
                 {/* Water */}
 
-                <div className="rounded-2xl bg-cyan-50 p-5">
+                <div className="rounded-2xl bg-stone-50 p-5">
 
-                  <div className="mb-4 text-xl">
+                  <div className="text-2xl">
                     💧
                   </div>
 
-                  <p className="text-sm font-medium text-cyan-700">
+                  <p className="mt-4 text-xs text-gray-400">
                     Water
                   </p>
 
-                  <p className="mt-1 text-2xl font-bold text-gray-900">
-                    {wellness?.water_cups ?? 0}
-                    <span className="ml-1 text-sm font-medium text-gray-500">
+                  <p className="mt-1 text-xl font-bold">
+                    {wellness?.water_cups ||
+                      0}
+                    <span className="ml-1 text-xs font-medium text-gray-400">
                       cups
                     </span>
                   </p>
 
                 </div>
 
-
                 {/* Streak */}
 
-                <div className="rounded-2xl bg-orange-50 p-5">
+                <div className="rounded-2xl bg-stone-50 p-5">
 
-                  <div className="mb-4 text-xl">
+                  <div className="text-2xl">
                     🔥
                   </div>
 
-                  <p className="text-sm font-medium text-orange-700">
+                  <p className="mt-4 text-xs text-gray-400">
                     Streak
                   </p>
 
-                  <p className="mt-1 text-2xl font-bold text-gray-900">
-                    {wellness?.streak_days ?? 0}
-                    <span className="ml-1 text-sm font-medium text-gray-500">
+                  <p className="mt-1 text-xl font-bold">
+                    {wellness?.streak_days ||
+                      0}
+                    <span className="ml-1 text-xs font-medium text-gray-400">
                       days
                     </span>
                   </p>
@@ -709,147 +1087,143 @@ function Dashboard() {
 
             </div>
 
+            {/* Wellness Score */}
 
-            {/* Score */}
+            <div className="lg:col-span-2 rounded-3xl bg-gray-900 p-6 text-white shadow-sm">
 
-            <div className="rounded-3xl border border-gray-200 bg-gray-900 p-6 text-white">
-
-              <p className="text-xs font-bold tracking-widest text-green-300">
-                WELLNESS SCORE
+              <p className="text-xs font-semibold uppercase tracking-wider text-green-300">
+                Wellness Score
               </p>
 
-              <h2 className="mt-2 text-2xl font-bold">
-                Today's balance
-              </h2>
-
-              <div className="mt-8 flex items-center justify-center">
-
-                <div className="flex h-36 w-36 items-center justify-center rounded-full border-[10px] border-green-700">
-
-                  <div className="text-center">
-
-                    <p className="text-4xl font-bold">
-                      {wellness?.wellness_score ?? 0}
-                    </p>
-
-                    <p className="text-xs text-gray-400">
-                      out of 100
-                    </p>
-
-                  </div>
-
-                </div>
-
-              </div>
-
-              <p className="mt-6 text-center text-sm leading-6 text-gray-400">
-                Your daily score can grow as you build consistent wellness
-                habits.
-              </p>
-
-            </div>
-
-          </section>
-
-
-          {/* ============================================
-              MEDITATION PROGRESS
-          ============================================ */}
-
-          <section className="mb-8 rounded-3xl border border-gray-200 bg-white overflow-hidden">
-
-            <div className="border-b border-gray-100 px-6 py-6 sm:px-8">
-
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="mt-5 flex items-end justify-between">
 
                 <div>
 
-                  <p className="text-xs font-bold tracking-widest text-green-700">
-                    MEDITATION
+                  <p className="text-5xl font-bold">
+                    {wellness?.wellness_score ||
+                      0}
                   </p>
 
-                  <h2 className="mt-2 text-2xl font-bold text-gray-900">
-                    Your meditation journey
-                  </h2>
-
-                  <p className="mt-1 text-sm text-gray-500">
-                    A record of the calm moments you've completed.
+                  <p className="mt-2 text-sm text-gray-400">
+                    out of 100
                   </p>
 
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => navigate("/meditation")}
-                  className="w-fit rounded-xl bg-green-700 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-green-800"
-                >
-                  Start Meditation →
-                </button>
+                <div className="text-4xl">
+                  ✨
+                </div>
 
               </div>
+
+              <div className="mt-6 h-2 overflow-hidden rounded-full bg-gray-700">
+
+                <div
+                  className="h-full rounded-full bg-green-400 transition-all"
+                  style={{
+                    width: `${Math.min(
+                      Number(
+                        wellness?.wellness_score ||
+                        0
+                      ),
+                      100
+                    )}%`,
+                  }}
+                />
+
+              </div>
+
+              <p className="mt-4 text-xs leading-5 text-gray-400">
+                A simple snapshot of the wellness
+                information currently recorded in
+                your FlowState profile.
+              </p>
 
             </div>
 
+          </section>
 
-            <div className="grid gap-px bg-gray-100 sm:grid-cols-3">
+          {/* ==================================================
+              MEDITATION PROGRESS
+          =================================================== */}
 
-              <div className="bg-white p-6">
+          <section className="mt-6 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-gray-100 sm:p-7">
 
-                <p className="text-sm text-gray-500">
-                  Total sessions
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+
+              <div>
+
+                <p className="text-xs font-semibold uppercase tracking-wider text-green-700">
+                  Meditation
                 </p>
 
-                <p className="mt-2 text-3xl font-bold text-gray-900">
-                  {meditationStats?.total_sessions ?? 0}
+                <h2 className="mt-1 text-2xl font-bold">
+                  Your meditation journey
+                </h2>
+
+              </div>
+
+              <button
+                type="button"
+                onClick={() =>
+                  navigate("/meditation")
+                }
+                className="text-sm font-semibold text-green-700 hover:text-green-800"
+              >
+                Practice meditation →
+              </button>
+
+            </div>
+
+            <div className="mt-6 grid gap-4 sm:grid-cols-3">
+
+              <div className="rounded-2xl bg-stone-50 p-5">
+
+                <p className="text-xs text-gray-400">
+                  Sessions
+                </p>
+
+                <p className="mt-2 text-2xl font-bold">
+                  {
+                    meditationStats?.total_sessions ||
+                    totalMeditationSessions ||
+                    0
+                  }
                 </p>
 
               </div>
 
+              <div className="rounded-2xl bg-stone-50 p-5">
 
-              <div className="bg-white p-6">
-
-                <p className="text-sm text-gray-500">
+                <p className="text-xs text-gray-400">
                   Total minutes
                 </p>
 
-                <p className="mt-2 text-3xl font-bold text-gray-900">
-                  {meditationStats?.total_minutes ?? 0}
+                <p className="mt-2 text-2xl font-bold">
+                  {
+                    meditationStats?.total_minutes ||
+                    0
+                  }
                 </p>
 
               </div>
 
+              <div className="rounded-2xl bg-stone-50 p-5">
 
-              <div className="bg-white p-6">
-
-                <p className="text-sm text-gray-500">
+                <p className="text-xs text-gray-400">
                   Last session
                 </p>
 
-                {meditationStats?.last_session ? (
-                  <>
-                    <p className="mt-2 font-bold text-gray-900">
-                      {meditationStats.last_session.session_type_display}
-                    </p>
-
-                    <p className="mt-1 text-xs text-gray-400">
-                      {
-                        meditationStats.last_session
-                          .duration_minutes
-                      }{" "}
-                      minutes
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <p className="mt-2 font-bold text-gray-900">
-                      No session yet
-                    </p>
-
-                    <p className="mt-1 text-xs text-gray-400">
-                      Start your first session
-                    </p>
-                  </>
-                )}
+                <p className="mt-2 text-sm font-bold">
+                  {meditationStats?.last_session
+                    ? formatDate(
+                      meditationStats
+                        .last_session
+                        .completed_at
+                        ?.split("T")[0]
+                    )
+                    : "No sessions yet"}
+                </p>
 
               </div>
 
@@ -857,140 +1231,137 @@ function Dashboard() {
 
           </section>
 
-
-          {/* ============================================
+          {/* ==================================================
               RECENT ACTIVITY
-          ============================================ */}
+          =================================================== */}
 
-          <section className="mb-8">
+          <section className="mt-6 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-gray-100 sm:p-7">
 
-            <div className="mb-4">
+            <div>
 
-              <p className="text-xs font-bold tracking-widest text-green-700">
-                RECENT ACTIVITY
+              <p className="text-xs font-semibold uppercase tracking-wider text-green-700">
+                Recent Activity
               </p>
 
-              <h2 className="mt-2 text-2xl font-bold text-gray-900">
-                Keep an eye on your journey
+              <h2 className="mt-1 text-2xl font-bold">
+                Your latest progress
               </h2>
 
             </div>
 
+            {recentActivities.length ===
+              0 ? (
+              <div className="mt-6 rounded-2xl bg-stone-50 p-8 text-center">
 
-            <div className="overflow-hidden rounded-3xl border border-gray-200 bg-white">
+                <div className="text-4xl">
+                  🌱
+                </div>
 
-              {activityHistory.length > 0 ? (
+                <h3 className="mt-3 font-bold">
+                  Your journey starts here
+                </h3>
 
-                activityHistory
-                  .slice()
-                  .sort(
-                    (a, b) =>
-                      new Date(b.date) -
-                      new Date(a.date)
-                  )
-                  .slice(0, 6)
-                  .map((activity) => (
+                <p className="mt-1 text-sm text-gray-500">
+                  Complete a yoga or meditation practice
+                  and it will appear here.
+                </p>
 
-                    <div
+              </div>
+            ) : (
+              <div className="mt-5 divide-y divide-gray-100">
+
+                {recentActivities.map(
+                  (activity) => (
+                    <button
                       key={activity.date}
-                      className="flex items-center justify-between border-b border-gray-100 p-5 last:border-b-0"
+                      type="button"
+                      onClick={() =>
+                        setSelectedDay(
+                          activity.date
+                        )
+                      }
+                      className="flex w-full items-center justify-between gap-4 py-4 text-left transition hover:bg-stone-50"
                     >
 
                       <div className="flex items-center gap-4">
 
-                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-green-50 text-lg">
-                          {Number(
-                            activity.meditation_sessions || 0
-                          ) > 0
-                            ? "🧠"
-                            : Number(
-                                activity.sessions || 0
-                              ) > 0
-                            ? "🧘"
-                            : "🌱"}
-                        </div>
+                        <div
+                          className={`h-3 w-3 rounded-full ${getActivityClasses(
+                            getActivityLevel(
+                              activity
+                            )
+                          )}`}
+                        />
 
                         <div>
 
-                          <p className="font-semibold text-gray-800">
-                            {Number(
-                              activity.meditation_sessions || 0
-                            ) > 0
-                              ? "Meditation completed"
-                              : Number(
-                                  activity.sessions || 0
-                                ) > 0
-                              ? "Wellness session completed"
-                              : "Wellness activity recorded"}
+                          <p className="text-sm font-semibold">
+                            {getRelativeDate(
+                              activity.date
+                            )}
                           </p>
 
-                          <p className="mt-1 text-xs text-gray-400">
-                            {getRelativeDate(activity.date)}
+                          <p className="mt-1 text-xs text-gray-500">
+                            {Number(
+                              activity.yoga_sessions ||
+                              0
+                            )}{" "}
+                            yoga ·{" "}
+                            {Number(
+                              activity.meditation_sessions ||
+                              0
+                            )}{" "}
+                            meditation
                           </p>
 
                         </div>
 
                       </div>
 
+                      <div className="text-right">
 
-                      <span className="rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-700">
-                        {activity.total_activities || 0}{" "}
-                        activity
-                        {Number(
-                          activity.total_activities || 0
-                        ) === 1
-                          ? ""
-                          : "ies"}
-                      </span>
+                        <p className="text-sm font-bold">
+                          {getActivityTotal(
+                            activity
+                          )}
+                        </p>
 
-                    </div>
+                        <p className="text-[10px] text-gray-400">
+                          {getActivityTotal(
+                            activity
+                          ) === 1
+                            ? "activity"
+                            : "activities"}
+                        </p>
 
-                  ))
+                      </div>
 
-              ) : (
+                    </button>
+                  )
+                )}
 
-                <div className="p-10 text-center">
-
-                  <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-green-50 text-2xl">
-                    🌱
-                  </div>
-
-                  <h3 className="font-semibold text-gray-800">
-                    Your journey starts here
-                  </h3>
-
-                  <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-gray-500">
-                    Complete a yoga, meditation, or wellness activity
-                    and your progress will appear here.
-                  </p>
-
-                </div>
-
-              )}
-
-            </div>
+              </div>
+            )}
 
           </section>
 
-
-          {/* ============================================
+          {/* ==================================================
               EXPLORE
-          ============================================ */}
+          =================================================== */}
 
-          <section className="pb-4">
+          <section className="mt-6 pb-8">
 
-            <div className="mb-4">
+            <div className="mb-5">
 
-              <p className="text-xs font-bold tracking-widest text-green-700">
-                EXPLORE
+              <p className="text-xs font-semibold uppercase tracking-wider text-green-700">
+                Explore
               </p>
 
-              <h2 className="mt-2 text-2xl font-bold text-gray-900">
-                Continue your practice
+              <h2 className="mt-1 text-2xl font-bold">
+                Continue your FlowState
               </h2>
 
             </div>
-
 
             <div className="grid gap-4 md:grid-cols-3">
 
@@ -998,80 +1369,84 @@ function Dashboard() {
 
               <button
                 type="button"
-                onClick={() => navigate("/yoga")}
-                className="group rounded-2xl border border-gray-200 bg-white p-6 text-left transition hover:border-green-200 hover:shadow-md"
+                onClick={() =>
+                  navigate("/yoga")
+                }
+                className="group rounded-3xl bg-white p-6 text-left shadow-sm ring-1 ring-gray-100 transition hover:-translate-y-0.5 hover:shadow-md"
               >
 
-                <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-green-50 text-xl">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-green-50 text-2xl">
                   🧘
                 </div>
 
-                <h3 className="text-lg font-bold text-gray-900">
+                <h3 className="mt-5 text-lg font-bold">
                   Yoga
                 </h3>
 
                 <p className="mt-2 text-sm leading-6 text-gray-500">
-                  Explore movement, recovery, cycle-aware practice,
-                  and mindful yoga sessions.
+                  Move, stretch, recover, and find a practice
+                  that matches how you feel.
                 </p>
 
-                <p className="mt-4 text-sm font-semibold text-green-700">
+                <p className="mt-4 text-xs font-semibold text-green-700">
                   Explore Yoga →
                 </p>
 
               </button>
 
-
               {/* Meditation */}
 
               <button
                 type="button"
-                onClick={() => navigate("/meditation")}
-                className="group rounded-2xl border border-gray-200 bg-white p-6 text-left transition hover:border-blue-200 hover:shadow-md"
+                onClick={() =>
+                  navigate("/meditation")
+                }
+                className="group rounded-3xl bg-white p-6 text-left shadow-sm ring-1 ring-gray-100 transition hover:-translate-y-0.5 hover:shadow-md"
               >
 
-                <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-xl">
-                  🧠
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-green-50 text-2xl">
+                  🌿
                 </div>
 
-                <h3 className="text-lg font-bold text-gray-900">
+                <h3 className="mt-5 text-lg font-bold">
                   Meditation
                 </h3>
 
                 <p className="mt-2 text-sm leading-6 text-gray-500">
-                  Create a quiet moment with guided meditation and
-                  breathing practices.
+                  Slow down, breathe, and create space for
+                  mental clarity.
                 </p>
 
-                <p className="mt-4 text-sm font-semibold text-blue-700">
+                <p className="mt-4 text-xs font-semibold text-green-700">
                   Start Meditation →
                 </p>
 
               </button>
 
-
-              {/* Knowledge */}
+              {/* Knowledge Hub */}
 
               <button
                 type="button"
-                onClick={() => navigate("/knowledge-hub")}
-                className="group rounded-2xl border border-gray-200 bg-white p-6 text-left transition hover:border-amber-200 hover:shadow-md"
+                onClick={() =>
+                  navigate("/knowledge-hub")
+                }
+                className="group rounded-3xl bg-white p-6 text-left shadow-sm ring-1 ring-gray-100 transition hover:-translate-y-0.5 hover:shadow-md"
               >
 
-                <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-amber-50 text-xl">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-green-50 text-2xl">
                   📚
                 </div>
 
-                <h3 className="text-lg font-bold text-gray-900">
+                <h3 className="mt-5 text-lg font-bold">
                   Knowledge Hub
                 </h3>
 
                 <p className="mt-2 text-sm leading-6 text-gray-500">
-                  Learn about yoga foundations, practices, philosophy,
-                  lifestyle, and wellness.
+                  Learn about yoga foundations, practices,
+                  philosophy, and wellness.
                 </p>
 
-                <p className="mt-4 text-sm font-semibold text-amber-700">
+                <p className="mt-4 text-xs font-semibold text-green-700">
                   Learn More →
                 </p>
 
@@ -1086,7 +1461,8 @@ function Dashboard() {
       </main>
 
       <Footer />
-    </>
+
+    </div>
   );
 }
 
