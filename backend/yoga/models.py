@@ -1,5 +1,5 @@
 from django.db import models
-
+from django.contrib.auth.models import User
 
 # ============================================================
 # ASANA
@@ -378,3 +378,34 @@ class DeepDiveRecommendation(models.Model):
 
     def __str__(self):
         return f"{self.deep_dive.title} - {self.asana.name}"
+
+# ============================================================
+# YOGA SESSION
+# ============================================================
+
+class YogaSession(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="yoga_sessions",
+    )
+
+    asana = models.ForeignKey(
+        Asana,
+        on_delete=models.CASCADE,
+        related_name="completed_sessions",
+    )
+
+    duration_minutes = models.PositiveIntegerField(
+        default=1,
+    )
+
+    completed_at = models.DateTimeField(
+        auto_now_add=True,
+    )
+
+    class Meta:
+        ordering = ["-completed_at"]
+
+    def __str__(self):
+        return f"{self.user} - {self.asana.name}"

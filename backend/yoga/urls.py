@@ -10,6 +10,7 @@ from .views import (
     CyclePhaseDetailView,
     DeepDiveFocusListView,
     DeepDiveFocusDetailView,
+    YogaSessionListCreateView,
 )
 
 
@@ -91,5 +92,11 @@ urlpatterns = [
         "deep-dives/<slug:slug>/",
         DeepDiveFocusDetailView.as_view(),
         name="deep-dive-detail",
+    ),
+
+    path(
+    "sessions/",
+    YogaSessionListCreateView.as_view(),
+    name="yoga-sessions",
     ),
 ]

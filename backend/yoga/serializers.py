@@ -6,6 +6,7 @@ from .models import (
     CycleRecommendation,
     DeepDiveFocus,
     DeepDiveRecommendation,
+    YogaSession,
 )
 
 
@@ -170,4 +171,29 @@ class DeepDiveFocusSerializer(serializers.ModelSerializer):
             "guidance",
             "is_active",
             "recommendations",
+        ]
+
+# ============================================================
+# YOGA SESSION SERIALIZER
+# ============================================================
+
+class YogaSessionSerializer(serializers.ModelSerializer):
+    asana_name = serializers.CharField(
+        source="asana.name",
+        read_only=True,
+    )
+
+    class Meta:
+        model = YogaSession
+        fields = [
+            "id",
+            "asana",
+            "asana_name",
+            "duration_minutes",
+            "completed_at",
+        ]
+        read_only_fields = [
+            "id",
+            "completed_at",
+            "asana_name",
         ]

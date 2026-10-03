@@ -1,11 +1,12 @@
 from rest_framework import generics
 from rest_framework.filters import SearchFilter
-
+from rest_framework.permissions import IsAuthenticated
 from .models import (
     Asana,
     Pranayama,
     CyclePhase,
     DeepDiveFocus,
+    YogaSession,
 )
 
 from .serializers import (
@@ -13,6 +14,7 @@ from .serializers import (
     PranayamaSerializer,
     CyclePhaseSerializer,
     DeepDiveFocusSerializer,
+    YogaSessionSerializer,
 )
 
 
@@ -306,4 +308,22 @@ class DeepDiveFocusDetailView(generics.RetrieveAPIView):
             is_active=True
         ).prefetch_related(
             "recommendations__asana"
+        )
+
+# ============================================================
+# YOGA SESSION LIST + CREATE
+# ============================================================
+
+class YogaSessionListCreateView(generics.ListCreateAPIView):
+    serializer_class = YogaSessionSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return YogaSession.objects.filter(
+            user=self.request.user
+        )
+
+    def perform_create(self, serializer):
+        serializer.save(
+            user=self.request.user
         )

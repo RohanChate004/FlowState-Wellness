@@ -1,6 +1,7 @@
 from django.db.models import Sum
 from meditation.models import MeditationSession
-from datetime import date
+from yoga.models import YogaSession
+from datetime import date, timedelta, timezone
 
 from django.contrib.auth import logout
 
@@ -126,12 +127,11 @@ class DailyWellnessView(APIView):
 
     permission_classes = [IsAuthenticated]
 
-    def get(self, request):
-
-        today = date.today()
+    def get_today_record(self, user):
+        today = timezone.localdate()
 
         wellness, created = DailyWellness.objects.get_or_create(
-            user=request.user,
+            user=user,
             date=today,
             defaults={
                 "sessions": 0,
@@ -142,9 +142,192 @@ class DailyWellnessView(APIView):
             },
         )
 
-        serializer = DailyWellnessSerializer(wellness)
+        return wellness
 
-        return Response(serializer.data)
+    def calculate_activity(self, user, today):
+        yoga_count = YogaSession.objects.filter(
+            user=user,
+            completed_at__date=today,
+        ).count()
+
+        meditation_count = MeditationSession.objects.filter(
+            user=user,
+            completed_at__date=today,
+        ).count()
+
+        return yoga_count + meditation_count
+
+    def calculate_streak(self, user, today):
+        yoga_dates = set(
+            YogaSession.objects.filter(
+                user=user
+            ).values_list(
+                "completed_at__date",
+                flat=True
+            )
+        )
+
+        meditation_dates = set(
+            MeditationSession.objects.filter(
+                user=user
+            ).values_list(
+                "completed_at__date",
+                flat=True
+            )
+        )
+
+        active_dates = (
+            yoga_dates |
+            meditation_dates
+        )
+
+        if today not in active_dates:
+            return 0
+
+        streak = 0
+        current_date = today
+
+        while current_date in active_dates:
+            streak += 1
+            current_date -= timedelta(days=1)
+
+        return streak
+
+    def calculate_score(
+        self,
+        sleep_hours,
+        water_cups,
+        sessions,
+    ):
+        # ------------------------------------------------------
+        # Sleep: maximum 40 points
+        # Ideal target = 8 hours
+        # ------------------------------------------------------
+
+        sleep_score = min(
+            float(sleep_hours) / 8,
+            1
+        ) * 40
+
+        # ------------------------------------------------------
+        # Water: maximum 30 points
+        # Target = 8 cups
+        # ------------------------------------------------------
+
+        water_score = min(
+            float(water_cups) / 8,
+            1
+        ) * 30
+
+        # ------------------------------------------------------
+        # Activity: maximum 30 points
+        # 3 activities = full activity score
+        # ------------------------------------------------------
+
+        activity_score = min(
+            sessions / 3,
+            1
+        ) * 30
+
+        score = round(
+            sleep_score +
+            water_score +
+            activity_score
+        )
+
+        return min(score, 100)
+
+    def sync_wellness(self, user, wellness):
+        today = wellness.date
+
+        sessions = self.calculate_activity(
+            user,
+            today
+        )
+
+        streak = self.calculate_streak(
+            user,
+            today
+        )
+
+        score = self.calculate_score(
+            wellness.sleep_hours,
+            wellness.water_cups,
+            sessions,
+        )
+
+        wellness.sessions = sessions
+        wellness.streak_days = streak
+        wellness.wellness_score = score
+
+        wellness.save(
+            update_fields=[
+                "sessions",
+                "streak_days",
+                "wellness_score",
+                "updated_at",
+            ]
+        )
+
+        return wellness
+
+    # ==========================================================
+    # GET
+    # ==========================================================
+
+    def get(self, request):
+
+        wellness = self.get_today_record(
+            request.user
+        )
+
+        wellness = self.sync_wellness(
+            request.user,
+            wellness
+        )
+
+        serializer = DailyWellnessSerializer(
+            wellness
+        )
+
+        return Response(
+            serializer.data
+        )
+
+    # ==========================================================
+    # PATCH
+    # ==========================================================
+
+    def patch(self, request):
+
+        wellness = self.get_today_record(
+            request.user
+        )
+
+        serializer = DailyWellnessSerializer(
+            wellness,
+            data=request.data,
+            partial=True,
+        )
+
+        if not serializer.is_valid():
+            return Response(
+                serializer.errors,
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        wellness = serializer.save()
+
+        wellness = self.sync_wellness(
+            request.user,
+            wellness
+        )
+
+        return Response(
+            DailyWellnessSerializer(
+                wellness
+            ).data
+        )
 
 class ActivityHistoryView(APIView):
 

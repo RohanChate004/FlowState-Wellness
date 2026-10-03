@@ -98,4 +98,24 @@ class DailyWellnessSerializer(serializers.ModelSerializer):
 
         read_only_fields = [
             "id",
+            "date",
+            "sessions",
+            "streak_days",
+            "wellness_score",
         ]
+
+    def validate_sleep_hours(self, value):
+        if value < 0 or value > 24:
+            raise serializers.ValidationError(
+                "Sleep hours must be between 0 and 24."
+            )
+
+        return value
+
+    def validate_water_cups(self, value):
+        if value < 0 or value > 50:
+            raise serializers.ValidationError(
+                "Water cups must be between 0 and 50."
+            )
+
+        return value
