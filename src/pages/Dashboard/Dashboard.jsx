@@ -737,7 +737,7 @@ function Dashboard() {
 
             <div className="mt-7 overflow-x-auto pb-2">
 
-              <div className="min-w-[720px]">
+              <div className="min-w-180">
 
                 {/* Month labels */}
 
