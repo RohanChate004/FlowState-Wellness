@@ -1,34 +1,33 @@
-from django.db.models import Sum
-from meditation.models import MeditationSession
-from yoga.models import YogaSession
-from datetime import date, timedelta, timezone
+from datetime import timedelta
 
 from django.contrib.auth import logout
+from django.utils import timezone
+
+from meditation.models import MeditationSession
+from yoga.models import YogaSession
 
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView
-from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import IsAuthenticated
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import DailyWellness
-
 from .serializers import (
     RegisterSerializer,
     EmailLoginSerializer,
     DailyWellnessSerializer,
 )
 
+
 class RegisterView(APIView):
 
     def post(self, request):
-
         serializer = RegisterSerializer(data=request.data)
 
         if serializer.is_valid():
-
             user = serializer.save()
 
             return Response(
@@ -49,10 +48,9 @@ class RegisterView(APIView):
         )
 
 
-
 class LoginView(TokenObtainPairView):
-
     serializer_class = EmailLoginSerializer
+
 
 class GoogleJWTView(APIView):
     authentication_classes = [SessionAuthentication]
@@ -73,18 +71,6 @@ class GoogleJWTView(APIView):
                 status=status.HTTP_401_UNAUTHORIZED,
             )
 
-
-        user = request.user
-
-        # Never issue JWTs to inactive accounts
-        if not user.is_active:
-            return Response(
-                {
-                    "detail": "This account is inactive."
-                },
-                status=status.HTTP_401_UNAUTHORIZED,
-            )
-
         refresh = RefreshToken.for_user(user)
 
         response = Response(
@@ -101,18 +87,16 @@ class GoogleJWTView(APIView):
             status=status.HTTP_200_OK,
         )
 
-        # We no longer need the Django session after
-        # converting the Google login into our JWT login.
         logout(request)
 
         return response
+
 
 class MeView(APIView):
 
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-
         user = request.user
 
         return Response(
@@ -122,6 +106,7 @@ class MeView(APIView):
                 "email": user.email,
             }
         )
+
 
 class DailyWellnessView(APIView):
 
@@ -163,7 +148,7 @@ class DailyWellnessView(APIView):
                 user=user
             ).values_list(
                 "completed_at__date",
-                flat=True
+                flat=True,
             )
         )
 
@@ -172,14 +157,11 @@ class DailyWellnessView(APIView):
                 user=user
             ).values_list(
                 "completed_at__date",
-                flat=True
+                flat=True,
             )
         )
 
-        active_dates = (
-            yoga_dates |
-            meditation_dates
-        )
+        active_dates = yoga_dates | meditation_dates
 
         if today not in active_dates:
             return 0
@@ -199,34 +181,19 @@ class DailyWellnessView(APIView):
         water_cups,
         sessions,
     ):
-        # ------------------------------------------------------
-        # Sleep: maximum 40 points
-        # Ideal target = 8 hours
-        # ------------------------------------------------------
-
         sleep_score = min(
             float(sleep_hours) / 8,
-            1
+            1,
         ) * 40
-
-        # ------------------------------------------------------
-        # Water: maximum 30 points
-        # Target = 8 cups
-        # ------------------------------------------------------
 
         water_score = min(
             float(water_cups) / 8,
-            1
+            1,
         ) * 30
-
-        # ------------------------------------------------------
-        # Activity: maximum 30 points
-        # 3 activities = full activity score
-        # ------------------------------------------------------
 
         activity_score = min(
             sessions / 3,
-            1
+            1,
         ) * 30
 
         score = round(
@@ -242,12 +209,12 @@ class DailyWellnessView(APIView):
 
         sessions = self.calculate_activity(
             user,
-            today
+            today,
         )
 
         streak = self.calculate_streak(
             user,
-            today
+            today,
         )
 
         score = self.calculate_score(
@@ -271,38 +238,20 @@ class DailyWellnessView(APIView):
 
         return wellness
 
-    # ==========================================================
-    # GET
-    # ==========================================================
-
     def get(self, request):
-
-        wellness = self.get_today_record(
-            request.user
-        )
+        wellness = self.get_today_record(request.user)
 
         wellness = self.sync_wellness(
             request.user,
-            wellness
-        )
-
-        serializer = DailyWellnessSerializer(
-            wellness
+            wellness,
         )
 
         return Response(
-            serializer.data
+            DailyWellnessSerializer(wellness).data
         )
-
-    # ==========================================================
-    # PATCH
-    # ==========================================================
 
     def patch(self, request):
-
-        wellness = self.get_today_record(
-            request.user
-        )
+        wellness = self.get_today_record(request.user)
 
         serializer = DailyWellnessSerializer(
             wellness,
@@ -320,14 +269,13 @@ class DailyWellnessView(APIView):
 
         wellness = self.sync_wellness(
             request.user,
-            wellness
+            wellness,
         )
 
         return Response(
-            DailyWellnessSerializer(
-                wellness
-            ).data
+            DailyWellnessSerializer(wellness).data
         )
+
 
 class ActivityHistoryView(APIView):
 
@@ -339,62 +287,110 @@ class ActivityHistoryView(APIView):
             user=request.user
         ).order_by("date")
 
+        yoga_sessions = YogaSession.objects.filter(
+            user=request.user
+        )
+
         meditation_sessions = MeditationSession.objects.filter(
             user=request.user
         )
 
+        yoga_by_date = {}
         meditation_by_date = {}
 
+        for session in yoga_sessions:
+            date_key = timezone.localtime(
+                session.completed_at
+            ).date().isoformat()
+
+            yoga_by_date[date_key] = (
+                yoga_by_date.get(date_key, 0) + 1
+            )
+
         for session in meditation_sessions:
+            date_key = timezone.localtime(
+                session.completed_at
+            ).date().isoformat()
 
-            date_key = session.completed_at.date().isoformat()
+            meditation_by_date[date_key] = (
+                meditation_by_date.get(date_key, 0) + 1
+            )
 
-            if date_key not in meditation_by_date:
-                meditation_by_date[date_key] = 0
+        # Include dates that have activity even if a DailyWellness
+        # record has not been created for that date yet.
+        active_dates = (
+            set(yoga_by_date.keys()) |
+            set(meditation_by_date.keys()) |
+            {
+                record.date.isoformat()
+                for record in wellness_records
+            }
+        )
 
-            meditation_by_date[date_key] += 1
-
+        wellness_map = {
+            record.date.isoformat(): record
+            for record in wellness_records
+        }
 
         history = []
 
-        for wellness in wellness_records:
+        for date_key in sorted(active_dates):
 
-            date_key = wellness.date.isoformat()
+            wellness = wellness_map.get(date_key)
 
+            yoga_count = yoga_by_date.get(date_key, 0)
             meditation_count = meditation_by_date.get(
                 date_key,
-                0
+                0,
             )
 
-            session_count = wellness.sessions or 0
-
             total_activities = (
-                session_count +
+                yoga_count +
                 meditation_count
             )
 
-            history.append({
+            history.append(
+                {
+                    "date": date_key,
 
-                "date": date_key,
+                    # Keep sessions as the total completed
+                    # yoga + meditation activity for the day.
+                    "sessions": total_activities,
 
-                "sessions": session_count,
+                    "yoga_sessions": yoga_count,
 
-                "meditation_sessions": meditation_count,
+                    "meditation_sessions": meditation_count,
 
-                "total_activities": total_activities,
+                    "total_activities": total_activities,
 
-                "sleep_hours": float(
-                    wellness.sleep_hours or 0
-                ),
+                    "sleep_hours": float(
+                        wellness.sleep_hours
+                        if wellness
+                        else 0
+                    ),
 
-                "water_cups": wellness.water_cups or 0,
+                    "water_cups": (
+                        wellness.water_cups
+                        if wellness
+                        else 0
+                    ),
 
-                "streak_days": wellness.streak_days or 0,
+                    "streak_days": (
+                        wellness.streak_days
+                        if wellness
+                        else 0
+                    ),
 
-                "wellness_score": wellness.wellness_score or 0,
+                    "wellness_score": (
+                        wellness.wellness_score
+                        if wellness
+                        else 0
+                    ),
+                }
+            )
 
-            })
-
-        return Response({
-            "history": history
-        })
+        return Response(
+            {
+                "history": history
+            }
+        )
