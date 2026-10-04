@@ -34,11 +34,9 @@ class AsanaSerializer(serializers.ModelSerializer):
             "contraindications",
             "modifications",
             "image_url",
-
-            # Video
-            "video_url",
-            "video_type",
-
+            "youtube_video_id",
+            "youtube_channel_name",
+            "youtube_url",
             "is_active",
             "created_at",
             "updated_at",

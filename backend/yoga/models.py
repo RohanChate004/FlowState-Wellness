@@ -63,18 +63,27 @@ class Asana(models.Model):
     )
 
     image_url = models.URLField(
-        blank=True,
+    blank=True,
+    null=True
+)
+
+    youtube_video_id = models.CharField(
+    max_length=50,
+    blank=True,
+    null=True
     )
 
-    # Video information
-    video_url = models.URLField(
-        blank=True,
+    youtube_channel_name = models.CharField(
+    max_length=150,
+    blank=True,
+    null=True
     )
 
-    video_type = models.CharField(
-        max_length=30,
-        default="youtube",
+    youtube_url = models.URLField(
+    blank=True,
+    null=True
     )
+
 
     is_active = models.BooleanField(
         default=True,
