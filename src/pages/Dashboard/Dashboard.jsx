@@ -154,6 +154,79 @@ function Dashboard() {
   }, [navigate]);
 
   // ============================================================
+  // SAVE WELLNESS
+  // ============================================================
+
+  const handleSaveWellness = async () => {
+    const token = localStorage.getItem("accessToken");
+
+    if (!token) {
+      navigate("/login");
+      return;
+    }
+
+    try {
+      setSavingWellness(true);
+      setWellnessMessage("");
+
+      const response = await fetch(
+        `${API_BASE_URL}/api/wellness/`,
+        {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            sleep_hours: Number(sleepHours) || 0,
+            water_cups: Number(waterCups) || 0,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.detail || "Unable to save wellness data."
+        );
+      }
+
+      setWellness(data);
+      setSleepHours(data.sleep_hours ?? "");
+      setWaterCups(data.water_cups ?? "");
+      setWellnessMessage("Wellness updated successfully.");
+
+      const historyResponse = await fetch(
+        `${API_BASE_URL}/api/activity-history/`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (historyResponse.ok) {
+        const historyData = await historyResponse.json();
+
+        setActivityHistory(
+          Array.isArray(historyData)
+            ? historyData
+            : historyData.history || []
+        );
+      }
+    } catch (err) {
+      console.error("Wellness update error:", err);
+      setWellnessMessage(
+        err.message || "Unable to save wellness data."
+      );
+    } finally {
+      setSavingWellness(false);
+    }
+  };
+
+  // ============================================================
   // HISTORY MAP
   // ============================================================
 
@@ -996,15 +1069,14 @@ function Dashboard() {
           </section>
 
           {/* ==================================================
-              TODAY SNAPSHOT
+              WELLNESS SNAPSHOT
           =================================================== */}
 
-          <section className="mt-6 grid gap-6 lg:grid-cols-5">
+          <section className="mt-6 grid gap-6 lg:grid-cols-3">
 
-            <div className="lg:col-span-3 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
+            <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-gray-100 lg:col-span-2">
 
-              <div>
-
+              <div className="mb-6">
                 <p className="text-xs font-semibold uppercase tracking-wider text-green-700">
                   Today
                 </p>
@@ -1013,130 +1085,199 @@ function Dashboard() {
                   Your wellness snapshot
                 </h2>
 
+                <p className="mt-2 text-sm leading-6 text-gray-500">
+                  Record today's sleep and water. FlowState
+                  calculates your activity and streak automatically.
+                </p>
               </div>
 
-              <div className="mt-6 grid gap-3 sm:grid-cols-3">
+              <div className="grid gap-4 sm:grid-cols-2">
 
-                {/* Sleep */}
+                <div className="rounded-2xl bg-indigo-50 p-5">
+                  <div className="mb-4 text-2xl">😴</div>
 
-                <div className="rounded-2xl bg-stone-50 p-5">
-
-                  <div className="text-2xl">
-                    😴
-                  </div>
-
-                  <p className="mt-4 text-xs text-gray-400">
+                  <label
+                    htmlFor="sleep-hours"
+                    className="text-sm font-semibold text-indigo-700"
+                  >
                     Sleep
-                  </p>
+                  </label>
 
-                  <p className="mt-1 text-xl font-bold">
-                    {wellness?.sleep_hours ||
-                      0}
-                    <span className="ml-1 text-xs font-medium text-gray-400">
+                  <div className="mt-3 flex items-center gap-3">
+                    <input
+                      id="sleep-hours"
+                      type="number"
+                      min="0"
+                      max="24"
+                      step="0.5"
+                      value={sleepHours}
+                      onChange={(e) => setSleepHours(e.target.value)}
+                      className="w-full rounded-xl border border-indigo-100 bg-white px-4 py-3 text-lg font-bold outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100"
+                      placeholder="0"
+                    />
+
+                    <span className="text-sm font-medium text-gray-500">
                       hrs
                     </span>
-                  </p>
-
+                  </div>
                 </div>
 
-                {/* Water */}
+                <div className="rounded-2xl bg-cyan-50 p-5">
+                  <div className="mb-4 text-2xl">💧</div>
 
-                <div className="rounded-2xl bg-stone-50 p-5">
-
-                  <div className="text-2xl">
-                    💧
-                  </div>
-
-                  <p className="mt-4 text-xs text-gray-400">
+                  <label
+                    htmlFor="water-cups"
+                    className="text-sm font-semibold text-cyan-700"
+                  >
                     Water
-                  </p>
+                  </label>
 
-                  <p className="mt-1 text-xl font-bold">
-                    {wellness?.water_cups ||
-                      0}
-                    <span className="ml-1 text-xs font-medium text-gray-400">
+                  <div className="mt-3 flex items-center gap-3">
+                    <input
+                      id="water-cups"
+                      type="number"
+                      min="0"
+                      max="50"
+                      step="1"
+                      value={waterCups}
+                      onChange={(e) => setWaterCups(e.target.value)}
+                      className="w-full rounded-xl border border-cyan-100 bg-white px-4 py-3 text-lg font-bold outline-none focus:border-cyan-300 focus:ring-2 focus:ring-cyan-100"
+                      placeholder="0"
+                    />
+
+                    <span className="text-sm font-medium text-gray-500">
                       cups
                     </span>
-                  </p>
-
-                </div>
-
-                {/* Streak */}
-
-                <div className="rounded-2xl bg-stone-50 p-5">
-
-                  <div className="text-2xl">
-                    🔥
                   </div>
-
-                  <p className="mt-4 text-xs text-gray-400">
-                    Streak
-                  </p>
-
-                  <p className="mt-1 text-xl font-bold">
-                    {wellness?.streak_days ||
-                      0}
-                    <span className="ml-1 text-xs font-medium text-gray-400">
-                      days
-                    </span>
-                  </p>
-
                 </div>
 
               </div>
+
+              <div className="mt-4 grid gap-4 sm:grid-cols-2">
+
+                <div className="rounded-2xl bg-orange-50 p-5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-orange-700">
+                        Streak
+                      </p>
+
+                      <p className="mt-1 text-2xl font-bold text-gray-900">
+                        {wellness?.streak_days ?? 0}
+                        <span className="ml-1 text-sm font-medium text-gray-500">
+                          days
+                        </span>
+                      </p>
+                    </div>
+
+                    <div className="text-2xl">🔥</div>
+                  </div>
+
+                  <p className="mt-2 text-xs text-gray-500">
+                    Automatically calculated from completed practices.
+                  </p>
+                </div>
+
+                <div className="rounded-2xl bg-green-50 p-5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-green-700">
+                        Today's activity
+                      </p>
+
+                      <p className="mt-1 text-2xl font-bold text-gray-900">
+                        {wellness?.sessions ?? 0}
+                        <span className="ml-1 text-sm font-medium text-gray-500">
+                          sessions
+                        </span>
+                      </p>
+                    </div>
+
+                    <div className="text-2xl">🧘</div>
+                  </div>
+
+                  <p className="mt-2 text-xs text-gray-500">
+                    Yoga + meditation completed today.
+                  </p>
+                </div>
+
+              </div>
+
+              <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-xs text-gray-400">
+                  Sleep and water are saved to your account.
+                </p>
+
+                <button
+                  type="button"
+                  onClick={handleSaveWellness}
+                  disabled={savingWellness}
+                  className="rounded-xl bg-green-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {savingWellness
+                    ? "Saving..."
+                    : "Save Today's Wellness"}
+                </button>
+              </div>
+
+              {wellnessMessage && (
+                <div
+                  className={`mt-4 rounded-xl px-4 py-3 text-sm ${
+                    wellnessMessage.includes("successfully")
+                      ? "bg-green-50 text-green-700"
+                      : "bg-red-50 text-red-700"
+                  }`}
+                >
+                  {wellnessMessage}
+                </div>
+              )}
 
             </div>
 
-            {/* Wellness Score */}
-
-            <div className="lg:col-span-2 rounded-3xl bg-gray-900 p-6 text-white shadow-sm">
+            <div className="rounded-3xl bg-gray-900 p-6 text-white shadow-sm">
 
               <p className="text-xs font-semibold uppercase tracking-wider text-green-300">
                 Wellness Score
               </p>
 
-              <div className="mt-5 flex items-end justify-between">
+              <h2 className="mt-1 text-2xl font-bold">
+                Today's balance
+              </h2>
 
-                <div>
-
-                  <p className="text-5xl font-bold">
-                    {wellness?.wellness_score ||
-                      0}
-                  </p>
-
-                  <p className="mt-2 text-sm text-gray-400">
-                    out of 100
-                  </p>
-
-                </div>
-
-                <div className="text-4xl">
-                  ✨
-                </div>
-
-              </div>
-
-              <div className="mt-6 h-2 overflow-hidden rounded-full bg-gray-700">
-
+              <div className="mt-8 flex items-center justify-center">
                 <div
-                  className="h-full rounded-full bg-green-400 transition-all"
-                  style={{
-                    width: `${Math.min(
-                      Number(
-                        wellness?.wellness_score ||
-                        0
-                      ),
-                      100
-                    )}%`,
-                  }}
-                />
+                  className="flex h-36 w-36 items-center justify-center rounded-full border-10 border-green-700"
+                  style={{ borderTopColor: "rgb(74 222 128)" }}
+                >
+                  <div className="text-center">
+                    <p className="text-4xl font-bold">
+                      {wellness?.wellness_score ?? 0}
+                    </p>
 
+                    <p className="text-xs text-gray-400">
+                      out of 100
+                    </p>
+                  </div>
+                </div>
               </div>
 
-              <p className="mt-4 text-xs leading-5 text-gray-400">
-                A simple snapshot of the wellness
-                information currently recorded in
-                your FlowState profile.
+              <div className="mt-7">
+                <div className="h-2 overflow-hidden rounded-full bg-gray-700">
+                  <div
+                    className="h-full rounded-full bg-green-400 transition-all duration-500"
+                    style={{
+                      width: `${Math.min(
+                        Number(wellness?.wellness_score || 0),
+                        100
+                      )}%`,
+                    }}
+                  />
+                </div>
+              </div>
+
+              <p className="mt-5 text-center text-sm leading-6 text-gray-400">
+                Sleep, hydration, and completed practices
+                contribute to today's score.
               </p>
 
             </div>
