@@ -81,6 +81,8 @@ INSTALLED_APPS = [
     "meditation",
     "yoga",
     "ai_wellness",
+    "cloudinary",
+    "cloudinary_storage",
 ]
 
 
@@ -347,5 +349,14 @@ LOGGING = {
             "level": "DEBUG",
             "propagate": False,
         },
+    },
+}
+
+STORAGES = {
+    "default": {
+        "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
     },
 }
