@@ -1,5 +1,5 @@
 import API_BASE_URL from "../../services/api";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import Navbar from "../../components/Navbar/Navbar";
 
@@ -20,7 +20,6 @@ function AsanaDetails() {
 
   const [imageError, setImageError] = useState(false);
 
-  const playerRef = useRef(null);
 
   // ============================================================
   // FETCH ASANA
@@ -54,117 +53,7 @@ function AsanaDetails() {
   }, [id]);
 
   // ============================================================
-  // YOUTUBE PLAYER
-  // ============================================================
-
-  useEffect(() => {
-    if (!asana?.youtube_video_id) return;
-
-    const loadYouTubeAPI = () => {
-      return new Promise((resolve) => {
-        if (window.YT?.Player) {
-          resolve();
-          return;
-        }
-
-        const existingScript = document.getElementById(
-          "youtube-iframe-api"
-        );
-
-        if (existingScript) {
-          const interval = setInterval(() => {
-            if (window.YT?.Player) {
-              clearInterval(interval);
-              resolve();
-            }
-          }, 100);
-
-          return;
-        }
-
-        const script = document.createElement("script");
-
-        script.id = "youtube-iframe-api";
-        script.src = "https://www.youtube.com/iframe_api";
-
-        document.body.appendChild(script);
-
-        window.onYouTubeIframeAPIReady = () => {
-          resolve();
-        };
-      });
-    };
-
-    let mounted = true;
-
-    const createPlayer = async () => {
-      await loadYouTubeAPI();
-
-      if (!mounted || !window.YT?.Player) return;
-
-      const playerElement = document.getElementById(
-        "flowstate-youtube-player"
-      );
-
-      if (!playerElement) return;
-
-      playerRef.current = new window.YT.Player(
-        "flowstate-youtube-player",
-        {
-          videoId: asana.youtube_video_id,
-
-          playerVars: {
-            autoplay: 0,
-            controls: 1,
-            rel: 0,
-            modestbranding: 1,
-            playsinline: 1,
-          },
-
-          events: {
-            onStateChange: (event) => {
-              if (
-                event.data ===
-                window.YT.PlayerState.PLAYING
-              ) {
-                setVideoStarted(true);
-              }
-
-              if (
-                event.data ===
-                window.YT.PlayerState.ENDED
-              ) {
-                setVideoCompleted(true);
-
-                setCompletionMessage(
-                  "Practice complete. You can now save it."
-                );
-              }
-            },
-          },
-        }
-      );
-    };
-
-    createPlayer();
-
-    return () => {
-      mounted = false;
-
-      if (playerRef.current) {
-        try {
-          playerRef.current.destroy();
-        } catch (err) {
-          console.log("YouTube cleanup:", err);
-        }
-
-        playerRef.current = null;
-      }
-    };
-  }, [asana?.youtube_video_id]);
-
-  // ============================================================
-  // DURATION
+  // HELPERS
   // ============================================================
 
   const formatDuration = (seconds) => {
@@ -175,6 +64,20 @@ function AsanaDetails() {
     }
 
     return `${Math.floor(seconds / 60)} min`;
+  };
+
+  const splitContent = (content) => {
+    if (!content) return [];
+
+    return content
+      .split(/\n+/)
+      .map((item) =>
+        item
+          .trim()
+          .replace(/^\d+[\.\)]\s*/, "")
+          .replace(/^[-•]\s*/, "")
+      )
+      .filter(Boolean);
   };
 
   // ============================================================
@@ -209,7 +112,7 @@ function AsanaDetails() {
     }
 
     if (
-      asana.youtube_video_id &&
+      asana.video &&
       !videoCompleted
     ) {
       setCompletionMessage(
@@ -263,7 +166,7 @@ function AsanaDetails() {
       if (!response.ok) {
         throw new Error(
           data.detail ||
-            "Unable to save your practice."
+          "Unable to save your practice."
         );
       }
 
@@ -280,7 +183,7 @@ function AsanaDetails() {
 
       setCompletionMessage(
         err.message ||
-          "Something went wrong while saving."
+        "Something went wrong while saving."
       );
     } finally {
       setCompleting(false);
@@ -293,10 +196,10 @@ function AsanaDetails() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-stone-50">
+      <div className="min-h-screen bg-[#f7f8f4]">
         <Navbar />
 
-        <div className="py-20 text-center">
+        <div className="mx-auto max-w-5xl px-6 py-24 text-center">
           <p className="text-sm text-gray-500">
             Preparing your practice...
           </p>
@@ -311,14 +214,14 @@ function AsanaDetails() {
 
   if (error || !asana) {
     return (
-      <div className="min-h-screen bg-stone-50">
+      <div className="min-h-screen bg-[#f7f8f4]">
         <Navbar />
 
         <div className="mx-auto max-w-3xl px-6 py-20 text-center">
-
-          <div className="rounded-3xl bg-white p-10 shadow-sm">
-
-            <div className="text-5xl">🧘</div>
+          <div className="rounded-[28px] bg-white p-10 shadow-sm ring-1 ring-gray-100">
+            <div className="text-5xl">
+              🧘
+            </div>
 
             <h1 className="mt-4 text-2xl font-bold">
               Asana not found
@@ -330,13 +233,11 @@ function AsanaDetails() {
 
             <Link
               to="/yoga"
-              className="mt-6 inline-block rounded-full bg-green-700 px-6 py-3 text-sm font-semibold text-white"
+              className="mt-6 inline-block rounded-full bg-[#376b52] px-6 py-3 text-sm font-semibold text-white"
             >
               Back to Yoga
             </Link>
-
           </div>
-
         </div>
       </div>
     );
@@ -346,122 +247,160 @@ function AsanaDetails() {
   // IMAGE
   // ============================================================
 
-  const youtubeThumbnail = asana.youtube_video_id
-    ? `https://img.youtube.com/vi/${asana.youtube_video_id}/hqdefault.jpg`
-    : null;
+  const mediaUrl = (url) => {
+    if (!url) return null;
+
+    return url.startsWith("http")
+      ? url
+      : `${API_BASE_URL}${url}`;
+  };
+
+  const imageUrl = mediaUrl(asana.image);
+  const videoUrl = mediaUrl(asana.video);
+
 
   const showImage =
-    asana.image_url && !imageError;
+    imageUrl && !imageError;
+
+  const muscles = splitContent(
+    asana.key_muscles
+  );
+
+  const steps = splitContent(
+    asana.step_by_step
+  );
+
+  const alignmentTips = splitContent(
+    asana.alignment_tips
+  );
+
+  const precautions = splitContent(
+    asana.precautions ||
+    asana.contraindications
+  );
 
   // ============================================================
   // MAIN PAGE
   // ============================================================
 
   return (
-    <div className="min-h-screen bg-stone-50 text-gray-900">
+    <div className="min-h-screen bg-[#f7f8f4] text-[#26332c]">
 
       <Navbar />
 
-      <main className="px-4 py-7 sm:px-6">
+      <main className="px-4 py-6 sm:px-6 lg:py-8">
 
-        <div className="mx-auto max-w-5xl">
+        <div className="mx-auto max-w-6xl">
 
           {/* BACK */}
 
           <Link
             to="/yoga"
-            className="text-sm font-semibold text-green-700 hover:text-green-800"
+            className="inline-flex items-center gap-2 text-sm font-semibold text-[#376b52] hover:text-[#28513d]"
           >
             ← Back to Yoga
           </Link>
+
 
           {/* ====================================================
               HERO
           ==================================================== */}
 
-          <section className="mt-4 overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-gray-100">
+          <section className="mt-5 overflow-hidden rounded-[30px] bg-white shadow-sm ring-1 ring-[#e5e9e2]">
 
-            <div className="grid lg:grid-cols-2">
+            <div className="grid lg:grid-cols-[1.05fr_0.95fr]">
 
               {/* IMAGE */}
 
-              <div className="relative h-72 bg-green-50 sm:h-80 lg:h-full lg:min-h-[390px]">
+              <div className="relative h-75 bg-[#e8efe7] lg:h-105 lg:self-start">
 
                 {showImage ? (
                   <img
-                    src={asana.image_url}
+                    src={imageUrl}
                     alt={asana.name}
                     className="h-full w-full object-cover"
-                    onError={() => setImageError(true)}
+                    onError={() =>
+                      setImageError(true)
+                    }
                   />
-                ) : youtubeThumbnail ? (
-                  <img
-                    src={youtubeThumbnail}
-                    alt={`${asana.name} practice`}
-                    className="h-full w-full object-cover"
-                  />
+
                 ) : (
                   <div className="flex h-full items-center justify-center">
-                    <span className="text-7xl">🧘</span>
+                    <span className="text-7xl">
+                      🧘
+                    </span>
                   </div>
                 )}
 
-                <span className="absolute left-5 top-5 rounded-full bg-white/95 px-3 py-1.5 text-xs font-semibold text-green-700 shadow-sm">
-                  {asana.difficulty}
-                </span>
+                <div className="absolute left-5 top-5 flex flex-wrap gap-2">
+
+                  <span className="rounded-full bg-white/95 px-3 py-1.5 text-xs font-semibold text-[#376b52] shadow-sm">
+                    {asana.difficulty}
+                  </span>
+
+                  {asana.category && (
+                    <span className="rounded-full bg-[#26332c]/85 px-3 py-1.5 text-xs font-medium text-white">
+                      {asana.category}
+                    </span>
+                  )}
+
+                </div>
 
               </div>
 
+
               {/* INFORMATION */}
 
-              <div className="flex flex-col justify-center p-6 sm:p-8">
+              <div className="flex flex-col justify-center p-6 sm:p-9 lg:p-10">
 
-                <p className="text-xs font-semibold uppercase tracking-wide text-green-700">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#376b52]">
                   {asana.sanskrit_name ||
                     "Yoga Practice"}
                 </p>
 
-                <h1 className="mt-1 text-3xl font-bold sm:text-4xl">
+                <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
                   {asana.name}
                 </h1>
 
-                <p className="mt-3 text-sm leading-6 text-gray-600">
+                <p className="mt-4 text-sm leading-7 text-gray-600">
                   {asana.short_description}
                 </p>
 
-                {/* INFO */}
 
-                <div className="mt-5 grid grid-cols-2 gap-2">
+                {/* QUICK INFO */}
 
-                  <div className="rounded-xl bg-green-50 p-3">
-                    <p className="text-[11px] text-gray-500">
-                      Duration
-                    </p>
+                <div className="mt-7 grid grid-cols-3 gap-2">
 
-                    <p className="mt-1 text-sm font-semibold">
-                      {formatDuration(
-                        asana.duration_seconds
-                      )}
-                    </p>
-                  </div>
+                  <InfoCard
+                    label="Duration"
+                    value={formatDuration(
+                      asana.duration_seconds
+                    )}
+                  />
 
-                  <div className="rounded-xl bg-green-50 p-3">
-                    <p className="text-[11px] text-gray-500">
-                      Focus
-                    </p>
+                  <InfoCard
+                    label="Focus"
+                    value={
+                      asana.focus_area ||
+                      "General"
+                    }
+                  />
 
-                    <p className="mt-1 text-sm font-semibold">
-                      {asana.focus_area ||
-                        "General"}
-                    </p>
-                  </div>
+                  <InfoCard
+                    label="Energy"
+                    value={
+                      asana.energy_level ||
+                      "Moderate"
+                    }
+                  />
 
                 </div>
+
 
                 <button
                   type="button"
                   onClick={handleStartPractice}
-                  className="mt-5 w-full rounded-full bg-green-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-green-800 sm:w-fit"
+                  className="mt-7 w-full rounded-full bg-[#376b52] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#2d5944] sm:w-fit"
                 >
                   Start {asana.name} →
                 </button>
@@ -472,21 +411,148 @@ function AsanaDetails() {
 
           </section>
 
+
           {/* ====================================================
-              BENEFITS
+              BENEFITS + MUSCLES
           ==================================================== */}
 
-          <section className="mt-4 rounded-3xl bg-white p-5 shadow-sm ring-1 ring-gray-100 sm:p-6">
+          <section className="mt-4 grid gap-4 lg:grid-cols-2">
 
-            <h2 className="text-lg font-bold">
-              Benefits
-            </h2>
+            {/* BENEFITS */}
 
-            <p className="mt-2 text-sm leading-6 text-gray-600">
-              {asana.benefits}
-            </p>
+            <InfoSection
+              eyebrow="Why practice"
+              title="Benefits"
+            >
+              <p className="whitespace-pre-line text-sm leading-7 text-gray-600">
+                {asana.benefits}
+              </p>
+            </InfoSection>
+
+
+            {/* MUSCLES */}
+
+            {muscles.length > 0 && (
+              <InfoSection
+                eyebrow="Body focus"
+                title="Key Muscles"
+              >
+
+                <div className="flex flex-wrap gap-2">
+
+                  {muscles.map(
+                    (muscle, index) => (
+                      <span
+                        key={`${muscle}-${index}`}
+                        className="rounded-full bg-[#edf4ed] px-3 py-2 text-xs font-semibold text-[#376b52]"
+                      >
+                        {muscle}
+                      </span>
+                    )
+                  )}
+
+                </div>
+
+              </InfoSection>
+            )}
 
           </section>
+
+
+          {/* ====================================================
+              STEP BY STEP
+          ==================================================== */}
+
+          {steps.length > 0 && (
+            <section className="mt-4 rounded-[30px] bg-white p-5 shadow-sm ring-1 ring-[#e5e9e2] sm:p-7">
+
+              <SectionTitle
+                eyebrow="Practice guide"
+                title="How to Practice"
+              />
+
+              <div className="mt-6 grid gap-3 sm:grid-cols-2">
+
+                {steps.map(
+                  (step, index) => (
+                    <div
+                      key={`${step}-${index}`}
+                      className="flex gap-4 rounded-2xl bg-[#f7f8f4] p-4"
+                    >
+
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#376b52] text-xs font-bold text-white">
+                        {index + 1}
+                      </div>
+
+                      <p className="text-sm leading-6 text-gray-600">
+                        {step}
+                      </p>
+
+                    </div>
+                  )
+                )}
+
+              </div>
+
+            </section>
+          )}
+
+
+          {/* FALLBACK OLD INSTRUCTIONS */}
+
+          {steps.length === 0 &&
+            asana.instructions && (
+              <InfoSection
+                eyebrow="Practice guide"
+                title="How to Practice"
+              >
+                <p className="whitespace-pre-line text-sm leading-7 text-gray-600">
+                  {asana.instructions}
+                </p>
+              </InfoSection>
+            )}
+
+
+          {/* ====================================================
+              ALIGNMENT
+          ==================================================== */}
+
+          {alignmentTips.length > 0 && (
+            <section className="mt-4 rounded-[30px] border border-[#dbe8da] bg-[#edf4ed] p-5 sm:p-7">
+
+              <SectionTitle
+                eyebrow="Body awareness"
+                title="Alignment Tips"
+              />
+
+              <div className="mt-6 grid gap-3 sm:grid-cols-2">
+
+                {alignmentTips.map(
+                  (tip, index) => (
+                    <div
+                      key={`${tip}-${index}`}
+                      className="rounded-2xl bg-white/80 p-4"
+                    >
+
+                      <p className="text-sm leading-6 text-gray-600">
+
+                        <span className="mr-2 font-semibold text-[#376b52]">
+                          {index + 1}.
+                        </span>
+
+                        {tip}
+
+                      </p>
+
+                    </div>
+                  )
+                )}
+
+              </div>
+
+            </section>
+          )}
+
 
           {/* ====================================================
               GUIDED PRACTICE
@@ -494,16 +560,16 @@ function AsanaDetails() {
 
           <section
             id="guided-practice"
-            className="mt-4 overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-gray-100"
+            className="mt-4 overflow-hidden rounded-[30px] bg-white shadow-sm ring-1 ring-[#e5e9e2]"
           >
 
-            <div className="p-5 sm:p-6">
+            <div className="p-5 sm:p-7">
 
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex flex-wrap items-start justify-between gap-4">
 
                 <div>
 
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-green-700">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#376b52]">
                     Guided Practice
                   </p>
 
@@ -511,160 +577,157 @@ function AsanaDetails() {
                     Watch & Practice
                   </h2>
 
+                  <p className="mt-2 text-sm text-gray-500">
+                    Complete the guided video before saving your practice.
+                  </p>
+
                 </div>
 
                 {videoCompleted && (
-                  <span className="rounded-full bg-green-100 px-3 py-1.5 text-xs font-semibold text-green-700">
-                    ✓ Completed
+                  <span className="rounded-full bg-[#e4f1e5] px-3 py-1.5 text-xs font-semibold text-[#376b52]">
+                    ✓ Video Completed
                   </span>
                 )}
 
               </div>
 
-              <p className="mt-2 text-sm text-gray-500">
-                Follow the practice at your own pace.
-              </p>
-
             </div>
 
-            {asana.youtube_video_id ? (
-              <div className="bg-stone-100 px-4 py-5">
 
-                <div className="mx-auto max-w-2xl overflow-hidden rounded-2xl bg-black shadow-sm">
+            {/* VIDEO */}
 
-                  <div className="aspect-video">
-
-                    <div
-                      id="flowstate-youtube-player"
-                      className="h-full w-full"
-                    />
-
-                  </div>
-
+            {videoUrl ? (
+              <div className="bg-[#f3f5f1] px-4 py-5 sm:px-7">
+                <div className="mx-auto max-w-3xl overflow-hidden rounded-2xl bg-black shadow-sm">
+                  <video
+                    className="aspect-video h-full w-full"
+                    controls
+                    playsInline
+                    preload="metadata"
+                    src={videoUrl}
+                    onPlay={() => {
+                      setVideoStarted(true);
+                    }}
+                    onEnded={() => {
+                      setVideoCompleted(true);
+                      setCompletionMessage(
+                        "Practice complete. You can now save it."
+                      );
+                    }}
+                  />
                 </div>
-
-                {asana.youtube_channel_name && (
-                  <p className="mx-auto mt-3 max-w-2xl text-xs text-gray-500">
-                    Guided by{" "}
-                    <span className="font-medium">
-                      {asana.youtube_channel_name}
-                    </span>
-                  </p>
-                )}
-
               </div>
-            ) : (
-              <div className="bg-stone-50 px-6 py-12 text-center">
 
-                <div className="text-4xl">🎥</div>
+            ) : (
+
+              <div className="bg-[#f7f8f4] px-6 py-12 text-center">
+
+                <div className="text-4xl">
+                  🎥
+                </div>
 
                 <p className="mt-3 text-sm font-semibold">
                   Guided video coming soon
                 </p>
 
               </div>
+
             )}
+
 
             {/* PROGRESS */}
 
             <div className="grid grid-cols-3 gap-2 border-t border-gray-100 p-4">
 
-              <div
-                className={`rounded-xl p-3 text-center ${
-                  videoStarted
-                    ? "bg-green-50"
-                    : "bg-gray-50"
-                }`}
-              >
-                <p className="text-xs font-semibold">
-                  {videoStarted ? "✓" : "1"}
-                </p>
+              <ProgressStep
+                number="1"
+                label="Start"
+                active={videoStarted}
+              />
 
-                <p className="mt-1 text-[11px] text-gray-500">
-                  Start
-                </p>
-              </div>
+              <ProgressStep
+                number="2"
+                label="Complete"
+                active={videoCompleted}
+              />
 
-              <div
-                className={`rounded-xl p-3 text-center ${
-                  videoCompleted
-                    ? "bg-green-50"
-                    : "bg-gray-50"
-                }`}
-              >
-                <p className="text-xs font-semibold">
-                  {videoCompleted ? "✓" : "2"}
-                </p>
-
-                <p className="mt-1 text-[11px] text-gray-500">
-                  Complete
-                </p>
-              </div>
-
-              <div
-                className={`rounded-xl p-3 text-center ${
-                  completed
-                    ? "bg-green-50"
-                    : "bg-gray-50"
-                }`}
-              >
-                <p className="text-xs font-semibold">
-                  {completed ? "✓" : "3"}
-                </p>
-
-                <p className="mt-1 text-[11px] text-gray-500">
-                  Save
-                </p>
-              </div>
+              <ProgressStep
+                number="3"
+                label="Save"
+                active={completed}
+              />
 
             </div>
 
           </section>
 
+
           {/* ====================================================
-              INSTRUCTIONS + MODIFICATIONS
+              MODIFICATIONS + PRECAUTIONS
           ==================================================== */}
 
           <section className="mt-4 grid gap-4 lg:grid-cols-2">
 
-            <div className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-gray-100 sm:p-6">
+            {asana.modifications && (
+              <InfoSection
+                eyebrow="Make it comfortable"
+                title="Modifications"
+              >
+                <p className="whitespace-pre-line text-sm leading-7 text-gray-600">
+                  {asana.modifications}
+                </p>
+              </InfoSection>
+            )}
 
-              <h2 className="text-lg font-bold">
-                How to Practice
-              </h2>
 
-              <p className="mt-3 whitespace-pre-line text-sm leading-6 text-gray-600">
-                {asana.instructions}
-              </p>
+            {precautions.length > 0 && (
+              <section className="rounded-[30px] border border-amber-100 bg-[#fffaf0] p-5 sm:p-7">
 
-            </div>
+                <SectionTitle
+                  eyebrow="Practice safely"
+                  title="Precautions"
+                />
 
-            <div className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-gray-100 sm:p-6">
+                <div className="mt-5 space-y-3">
 
-              <h2 className="text-lg font-bold">
-                Modifications
-              </h2>
+                  {precautions.map(
+                    (item, index) => (
+                      <div
+                        key={`${item}-${index}`}
+                        className="flex gap-3"
+                      >
 
-              <p className="mt-3 text-sm leading-6 text-gray-600">
-                {asana.modifications ||
-                  "Choose a comfortable variation according to your body."}
-              </p>
+                        <span className="mt-0.5 text-sm">
+                          ⚠️
+                        </span>
 
-            </div>
+                        <p className="text-sm leading-6 text-gray-600">
+                          {item}
+                        </p>
+
+                      </div>
+                    )
+                  )}
+
+                </div>
+
+              </section>
+            )}
 
           </section>
+
 
           {/* ====================================================
               SAVE PRACTICE
           ==================================================== */}
 
-          <section className="mt-4 rounded-3xl bg-green-700 p-5 text-white shadow-sm sm:p-6">
+          <section className="mt-4 rounded-[30px] bg-[#376b52] p-5 text-white shadow-sm sm:p-7">
 
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
 
               <div>
 
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-green-100">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-green-100">
                   FlowState Journey
                 </p>
 
@@ -674,91 +737,72 @@ function AsanaDetails() {
                     : "Finished your practice?"}
                 </h2>
 
-                <p className="mt-1 text-xs leading-5 text-green-50">
+                <p className="mt-2 max-w-xl text-xs leading-5 text-green-50">
                   {completed
                     ? "This practice has been added to your wellness history."
                     : videoCompleted
-                    ? "Save this completed practice to your journey."
-                    : "Finish the guided video to unlock saving."}
+                      ? "Your guided practice is complete. Save it to your journey."
+                      : "Finish the guided video to unlock saving."}
                 </p>
 
               </div>
 
+
               {completed ? (
-                <div className="rounded-full bg-white px-5 py-2.5 text-xs font-semibold text-green-700">
+
+                <div className="rounded-full bg-white px-5 py-2.5 text-xs font-semibold text-[#376b52]">
                   ✓ Saved
                 </div>
+
               ) : (
+
                 <button
                   type="button"
-                  onClick={handleCompletePractice}
+                  onClick={
+                    handleCompletePractice
+                  }
                   disabled={
                     completing ||
-                    (asana.youtube_video_id &&
+                    (asana.video &&
                       !videoCompleted)
                   }
-                  className={`rounded-full px-5 py-2.5 text-xs font-semibold transition ${
-                    completing ||
-                    (asana.youtube_video_id &&
+                  className={`rounded-full px-5 py-2.5 text-xs font-semibold transition ${completing ||
+                    (asana.video &&
                       !videoCompleted)
-                      ? "cursor-not-allowed bg-white/40 text-white/70"
-                      : "bg-white text-green-700 hover:bg-green-50"
-                  }`}
+                    ? "cursor-not-allowed bg-white/30 text-white/70"
+                    : "bg-white text-[#376b52] hover:bg-green-50"
+                    }`}
                 >
+
                   {completing
                     ? "Saving..."
                     : videoCompleted
-                    ? "✓ Save Practice"
-                    : "Complete Video First"}
+                      ? "✓ Save Practice"
+                      : "Complete Video First"}
+
                 </button>
+
               )}
 
             </div>
 
+
             {completionMessage && (
-              <p className="mt-3 rounded-xl bg-white/10 px-3 py-2 text-xs text-green-50">
+              <p className="mt-4 rounded-xl bg-white/10 px-3 py-2 text-xs text-green-50">
                 {completionMessage}
               </p>
             )}
 
           </section>
 
-          {/* ====================================================
-              SAFETY
-          ==================================================== */}
-
-          <section className="mt-4 rounded-3xl border border-green-100 bg-green-50 p-5">
-
-            <div className="flex gap-3">
-
-              <span className="text-xl">
-                🛡️
-              </span>
-
-              <div>
-
-                <h2 className="text-sm font-bold">
-                  Practice Safely
-                </h2>
-
-                <p className="mt-1 text-xs leading-5 text-gray-600">
-                  {asana.contraindications ||
-                    "Practice within your comfort level and stop if something feels wrong."}
-                </p>
-
-              </div>
-
-            </div>
-
-          </section>
 
           {/* BOTTOM */}
 
-          <div className="py-7">
+          <div className="py-8">
 
             <Link
               to="/yoga"
-              className="text-sm font-semibold text-green-700 hover:text-green-800"
+              className="text-sm font-semibold text-[#376b52] hover:text-[#28513d]"
             >
               ← Explore more asanas
             </Link>
@@ -772,5 +816,100 @@ function AsanaDetails() {
     </div>
   );
 }
+
+
+// ============================================================
+// SMALL COMPONENTS
+// ============================================================
+
+function InfoCard({ label, value }) {
+  return (
+    <div className="rounded-2xl bg-[#f2f6f0] p-3">
+
+      <p className="text-[10px] font-medium uppercase tracking-wide text-gray-500">
+        {label}
+      </p>
+
+      <p className="mt-1 truncate text-xs font-semibold text-[#26332c]">
+        {value}
+      </p>
+
+    </div>
+  );
+}
+
+
+function InfoSection({
+  eyebrow,
+  title,
+  children,
+}) {
+  return (
+    <section className="rounded-[30px] bg-white p-5 shadow-sm ring-1 ring-[#e5e9e2] sm:p-7">
+
+      <SectionTitle
+        eyebrow={eyebrow}
+        title={title}
+      />
+
+      <div className="mt-5">
+        {children}
+      </div>
+
+    </section>
+  );
+}
+
+
+function SectionTitle({
+  eyebrow,
+  title,
+}) {
+  return (
+    <div>
+
+      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#376b52]">
+        {eyebrow}
+      </p>
+
+      <h2 className="mt-1 text-xl font-bold text-[#26332c]">
+        {title}
+      </h2>
+
+    </div>
+  );
+}
+
+
+function ProgressStep({
+  number,
+  label,
+  active,
+}) {
+  return (
+    <div
+      className={`rounded-2xl p-3 text-center ${active
+        ? "bg-[#edf4ed]"
+        : "bg-gray-50"
+        }`}
+    >
+
+      <p
+        className={`text-xs font-semibold ${active
+          ? "text-[#376b52]"
+          : "text-gray-500"
+          }`}
+      >
+        {active ? "✓" : number}
+      </p>
+
+      <p className="mt-1 text-[11px] text-gray-500">
+        {label}
+      </p>
+
+    </div>
+  );
+}
+
 
 export default AsanaDetails;

@@ -100,3 +100,4 @@ urlpatterns = [
     name="yoga-sessions",
     ),
 ]
+

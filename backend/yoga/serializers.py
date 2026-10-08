@@ -33,10 +33,15 @@ class AsanaSerializer(serializers.ModelSerializer):
             "energy_level",
             "contraindications",
             "modifications",
-            "image_url",
-            "youtube_video_id",
-            "youtube_channel_name",
-            "youtube_url",
+
+            # New structured asana content
+            "key_muscles",
+            "step_by_step",
+            "alignment_tips",
+            "precautions",
+
+            "image",
+            "video",
             "is_active",
             "created_at",
             "updated_at",

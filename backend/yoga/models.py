@@ -62,27 +62,34 @@ class Asana(models.Model):
         blank=True,
     )
 
-    image_url = models.URLField(
+    key_muscles = models.TextField(
+        blank=True
+    )
+
+    step_by_step = models.TextField(
+        blank=True
+    )
+
+    alignment_tips = models.TextField(
+        blank=True
+    )
+
+    precautions = models.TextField(
+        blank=True
+    )
+
+    image = models.ImageField(
+    upload_to="yoga/asanas/images/",
     blank=True,
-    null=True
+    null=True,
 )
 
-    youtube_video_id = models.CharField(
-    max_length=50,
-    blank=True,
-    null=True
-    )
 
-    youtube_channel_name = models.CharField(
-    max_length=150,
+    video = models.FileField(
+    upload_to="yoga/asanas/videos/",
     blank=True,
-    null=True
-    )
-
-    youtube_url = models.URLField(
-    blank=True,
-    null=True
-    )
+    null=True,
+)
 
 
     is_active = models.BooleanField(
