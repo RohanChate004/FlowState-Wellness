@@ -1,3 +1,4 @@
+from cloudinary_storage.storage import VideoMediaCloudinaryStorage
 from django.db import models
 from django.contrib.auth.models import User
 
@@ -89,8 +90,8 @@ class Asana(models.Model):
     upload_to="yoga/asanas/videos/",
     blank=True,
     null=True,
+    storage=VideoMediaCloudinaryStorage()
 )
-
 
     is_active = models.BooleanField(
         default=True,
