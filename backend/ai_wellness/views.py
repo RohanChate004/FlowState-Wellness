@@ -13,6 +13,131 @@ from google import genai
 from meditation.models import MeditationSession
 
 
+# ---------------------------------------------------------
+# TRUSTED EXTERNAL SOURCES
+# ---------------------------------------------------------
+
+TRUSTED_SOURCES = {
+    "nccih": {
+        "label": "Explore Trusted Health Information",
+        "url": "https://www.nccih.nih.gov/",
+    },
+    "pubmed": {
+        "label": "Explore Scientific Research",
+        "url": "https://pubmed.ncbi.nlm.nih.gov/",
+    },
+    "who": {
+        "label": "Explore WHO Information",
+        "url": "https://www.who.int/",
+    },
+}
+
+
+# ---------------------------------------------------------
+# ALLOWED INTERNAL ROUTES
+# ---------------------------------------------------------
+
+ALLOWED_INTERNAL_ROUTES = {
+    "/yoga": "Explore Yoga",
+    "/meditation": "Start Meditation",
+    "/deep-dive": "Enter Deep Dive",
+    "/knowledge-hub": "Open Knowledge Hub",
+}
+
+
+# ---------------------------------------------------------
+# SAFE ACTION BUILDER
+# ---------------------------------------------------------
+
+def build_action(ai_data):
+    """
+    Validate the action returned by Gemini.
+
+    Gemini should decide the user's intent,
+    but Django controls which routes and external
+    websites are actually allowed.
+    """
+
+    intent = ai_data.get("intent", "practice")
+    action_data = ai_data.get("action", {})
+
+    action_type = action_data.get("type")
+
+    # -----------------------------------------------------
+    # INTERNAL ACTION
+    # -----------------------------------------------------
+
+    if action_type == "internal":
+
+        route = action_data.get("route", "")
+
+        # Exact allowed route
+        if route in ALLOWED_INTERNAL_ROUTES:
+
+            return {
+                "type": "internal",
+                "label": action_data.get(
+                    "label",
+                    ALLOWED_INTERNAL_ROUTES[route],
+                ),
+                "route": route,
+            }
+
+        # Knowledge Hub article routes
+        if route.startswith("/knowledge-hub/article/"):
+
+            slug = route.replace(
+                "/knowledge-hub/article/",
+                "",
+                1,
+            ).strip("/")
+
+            # Prevent empty or suspicious routes
+            if slug and "/" not in slug:
+
+                return {
+                    "type": "internal",
+                    "label": action_data.get(
+                        "label",
+                        "Learn in Knowledge Hub",
+                    ),
+                    "route": f"/knowledge-hub/article/{slug}",
+                }
+
+        # Invalid route
+        return None
+
+    # -----------------------------------------------------
+    # EXTERNAL ACTION
+    # -----------------------------------------------------
+
+    if action_type == "external":
+
+        source_key = action_data.get("source_key")
+
+        source = TRUSTED_SOURCES.get(source_key)
+
+        if source:
+
+            return {
+                "type": "external",
+                "label": source["label"],
+                "url": source["url"],
+            }
+
+        return None
+
+    # -----------------------------------------------------
+    # NO ACTION
+    # -----------------------------------------------------
+
+    return None
+
+
+# ---------------------------------------------------------
+# AI WELLNESS CHAT
+# ---------------------------------------------------------
+
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def ai_wellness_chat(request):
@@ -36,7 +161,11 @@ def ai_wellness_chat(request):
     # 2. CHECK GEMINI API KEY
     # ---------------------------------------------------------
 
-    api_key = getattr(settings, "GEMINI_API_KEY", None)
+    api_key = getattr(
+        settings,
+        "GEMINI_API_KEY",
+        None,
+    )
 
     if not api_key:
         return Response(
@@ -50,18 +179,26 @@ def ai_wellness_chat(request):
     # 3. GET USER'S MEDITATION HISTORY
     # ---------------------------------------------------------
 
-    recent_sessions = MeditationSession.objects.filter(
-        user=request.user
-    ).order_by("-completed_at")[:5]
+    recent_sessions = (
+        MeditationSession.objects
+        .filter(user=request.user)
+        .order_by("-completed_at")[:5]
+    )
 
     recent_history = []
 
     for session in recent_sessions:
+
         recent_history.append(
             {
-                "session_type": session.get_session_type_display(),
-                "duration_minutes": session.duration_minutes,
-                "completed_at": session.completed_at.isoformat(),
+                "session_type":
+                    session.get_session_type_display(),
+
+                "duration_minutes":
+                    session.duration_minutes,
+
+                "completed_at":
+                    session.completed_at.isoformat(),
             }
         )
 
@@ -101,7 +238,23 @@ def ai_wellness_chat(request):
         time_of_day = "night"
 
     # ---------------------------------------------------------
-    # 6. SEND DATA TO GEMINI
+    # 6. BUILD USER INPUT
+    # ---------------------------------------------------------
+
+    user_input = ""
+
+    if mood:
+        user_input += (
+            f"Current mood: {mood}\n"
+        )
+
+    if message:
+        user_input += (
+            f"User says: {message}"
+        )
+
+    # ---------------------------------------------------------
+    # 7. CALL GEMINI
     # ---------------------------------------------------------
 
     try:
@@ -110,123 +263,270 @@ def ai_wellness_chat(request):
             api_key=api_key
         )
 
-        # -----------------------------------------------------
-        # Build user's current input
-        # -----------------------------------------------------
-
-        user_input = ""
-
-        if mood:
-            user_input += f"Current mood: {mood}\n"
-
-        if message:
-            user_input += f"User says: {message}"
-
-        # -----------------------------------------------------
-        # Gemini Prompt
-        # -----------------------------------------------------
-
         prompt = f"""
-You are FlowState AI, a wellness assistant inside the FlowState
-mental wellness and yoga platform.
+You are FlowState AI.
 
-Your purpose is to help users with everyday wellness situations such as:
+You are the wellness assistant inside the
+FlowState yoga, meditation and mental-wellness
+platform.
 
-- stress
-- anxiety
-- tiredness
-- low energy
-- difficulty relaxing
-- sleep and relaxation
-- general physical soreness
-- meditation
-- breathing exercises
+Your job is to understand the user's natural language
+and provide useful wellness guidance.
+
+The user may type:
+
+- one word
+- a short sentence
+- incorrect grammar
+- spelling mistakes
+- casual language
+- incomplete sentences
+- mixed language
+
+Understand the intended meaning naturally.
+
+Examples:
+
+"stress"
+
+"i am stresed"
+
+"cant sleep"
+
+"mala khup tension ahe"
+
+"what yoga good for back pain"
+
+"meditation mhnje kay"
+
+"i feel tired"
+
+Do NOT criticize grammar or spelling.
+
+---------------------------------------------------------
+FLOWSTATE SCOPE
+---------------------------------------------------------
+
+FlowState focuses mainly on:
+
 - yoga
-- gentle movement
-- recovery
-
-Analyze the user's current situation and give ONE clear personalized
-wellness recommendation.
-
-Do not give a list of different practices.
-
-Possible recommendation types are:
-
 - meditation
 - breathing
-- yoga
-- deep_dive
+- relaxation
+- stress management
+- general wellness
+- gentle movement
+- physical recovery
+- sleep and relaxation
+- yoga philosophy
+- yoga knowledge
+- mindfulness
 
-Choose the single most suitable type.
+Stay within this scope.
+
+Do not behave like a general-purpose chatbot.
+
+If the question is unrelated to FlowState's purpose,
+politely explain that FlowState focuses on wellness,
+yoga and meditation.
+
+For useful topics outside FlowState's own content,
+you may provide a trusted external source.
+
+---------------------------------------------------------
+INTENT
+---------------------------------------------------------
+
+Choose exactly ONE intent:
+
+practice
+knowledge
+external
+unsupported
+
+Use:
+
+practice
+when the user needs an action or wellness practice.
+
+knowledge
+when the user is asking about yoga, meditation,
+breathing, philosophy or wellness information.
+
+external
+when useful information is outside FlowState's
+covered content but a trusted external source
+would help.
+
+unsupported
+when the request is clearly unrelated to
+FlowState's purpose.
+
+---------------------------------------------------------
+PRACTICE
+---------------------------------------------------------
+
+If intent is "practice", choose exactly ONE:
+
+meditation
+breathing
+yoga
+deep_dive
+
+Do not give multiple practice recommendations.
+
+---------------------------------------------------------
+KNOWLEDGE HUB
+---------------------------------------------------------
+
+When intent is "knowledge", prefer the FlowState
+Knowledge Hub when the topic matches one of these
+available articles:
+
+what-is-yoga
+
+understanding-pranayama
+
+yoga-sutras
+
+bhagavad-gita
+
+upanishadic-wisdom
+
+Examples:
+
+If the user asks:
+"What is yoga?"
+
+use:
+
+/knowledge-hub/article/what-is-yoga
+
+If the user asks:
+"What is pranayama?"
+
+use:
+
+/knowledge-hub/article/understanding-pranayama
+
+If the user asks:
+"Tell me about Yoga Sutras"
+
+use:
+
+/knowledge-hub/article/yoga-sutras
+
+If the question is about yoga knowledge but does not
+clearly match one of these articles, use:
+
+/knowledge-hub
+
+Do not invent article slugs.
+
+---------------------------------------------------------
+EXTERNAL SOURCES
+---------------------------------------------------------
+
+For intent "external", choose exactly ONE source_key:
+
+nccih
+pubmed
+who
+
+Use the source that is most appropriate.
+
+Do NOT create URLs yourself.
+
+Only return the source_key.
+
+The backend will convert the source_key
+into the actual trusted URL.
+
+---------------------------------------------------------
+ACTION
+---------------------------------------------------------
+
+For practice:
+
+meditation → /meditation
+
+breathing → /meditation
+
+yoga → /yoga
+
+deep_dive → /deep-dive
+
+For knowledge:
+
+use the appropriate Knowledge Hub article route.
+
+For unsupported:
+
+there may be no action.
+
+For external:
+
+return source_key only.
 
 ---------------------------------------------------------
 SAFETY
 ---------------------------------------------------------
 
-Do not diagnose medical or mental health conditions.
+Do not diagnose medical or mental-health conditions.
 
 Do not claim to be a doctor or therapist.
 
-If the user describes a serious emergency or immediate danger,
-encourage them to contact appropriate emergency or professional
-support.
+Do not prescribe medication.
+
+If the user describes immediate danger,
+serious emergency or self-harm risk,
+encourage them to contact appropriate emergency
+or professional support.
 
 ---------------------------------------------------------
-CURRENT USER SITUATION
+USER CURRENT SITUATION
 ---------------------------------------------------------
-
-The user's current situation is:
 
 {user_input}
 
 ---------------------------------------------------------
-USER'S RECENT MEDITATION HISTORY
+USER MEDITATION HISTORY
 ---------------------------------------------------------
 
 {recent_history}
 
----------------------------------------------------------
-USER'S OVERALL MEDITATION STATISTICS
----------------------------------------------------------
+Total meditation sessions:
+{total_sessions}
 
-Total meditation sessions: {total_sessions}
-
-Total meditation minutes: {total_minutes}
+Total meditation minutes:
+{total_minutes}
 
 ---------------------------------------------------------
-CURRENT TIME CONTEXT
+TIME CONTEXT
 ---------------------------------------------------------
 
 Current time:
-
 {current_time.strftime("%I:%M %p")}
 
 Time of day:
-
 {time_of_day}
 
 ---------------------------------------------------------
-PERSONALIZATION RULES
+PERSONALIZATION
 ---------------------------------------------------------
 
-Use the user's recent activity as supporting context when choosing
-the ONE recommendation.
+Use the user's current message and mood first.
 
-Consider the time of day when selecting the recommendation,
-but do not let time override the user's current mood or message.
+Use meditation history as supporting context.
 
-Consider the current mood and message first.
+Consider time of day as supporting context.
 
-Use meditation history only as additional context.
+Do not assume the user needs meditation simply
+because they have meditation history.
 
-Do not assume that the user needs meditation simply because they
-have meditation history.
+Do not mention database details.
 
-Do not mention private technical details or database information
-to the user.
-
-Do not mention the user's meditation statistics directly unless
-it is useful and natural.
+Do not expose private technical information.
 
 ---------------------------------------------------------
 RESPONSE FORMAT
@@ -234,41 +534,71 @@ RESPONSE FORMAT
 
 Return ONLY valid JSON.
 
-The JSON must follow exactly this structure:
+Use exactly this structure:
 
 {{
-    "reply": "A short supportive explanation for the user.",
+    "reply": "Short helpful response",
+    "intent": "practice",
     "recommendation": {{
         "type": "meditation",
-        "title": "Short practice title",
+        "title": "5-Minute Calm Reset",
         "duration": 5
+    }},
+    "action": {{
+        "type": "internal",
+        "label": "Start Meditation",
+        "route": "/meditation"
     }}
+}}
+
+For knowledge:
+
+{{
+    "reply": "Short explanation",
+    "intent": "knowledge",
+    "recommendation": null,
+    "action": {{
+        "type": "internal",
+        "label": "Learn in Knowledge Hub",
+        "route": "/knowledge-hub/article/understanding-pranayama"
+    }}
+}}
+
+For external:
+
+{{
+    "reply": "Short helpful explanation",
+    "intent": "external",
+    "recommendation": null,
+    "action": {{
+        "type": "external",
+        "label": "Explore Trusted Information",
+        "source_key": "nccih"
+    }}
+}}
+
+For unsupported:
+
+{{
+    "reply": "FlowState focuses on yoga, meditation and wellness.",
+    "intent": "unsupported",
+    "recommendation": null,
+    "action": null
 }}
 
 Rules:
 
-- "reply" must be concise and supportive.
-- "type" must be exactly one of:
-  meditation, breathing, yoga, deep_dive
-- "title" should describe the recommended practice.
-- "duration" must be the approximate duration in minutes.
-- "duration" must be a number.
-- Do not include markdown.
-- Do not include ```json.
-- Do not include any text outside the JSON.
-
----------------------------------------------------------
-FINAL INSTRUCTION
----------------------------------------------------------
-
-Give the user ONE clear next action.
-
-Do not provide multiple recommendations.
+- Return valid JSON only.
+- No markdown.
+- No code fences.
+- Do not include text outside JSON.
+- Do not provide multiple recommendations.
+- duration must be a number.
+- Use only the allowed internal routes.
+- Do not invent Knowledge Hub article slugs.
+- For external sources use only:
+  nccih, pubmed, who.
 """
-
-        # -----------------------------------------------------
-        # 7. CALL GEMINI
-        # -----------------------------------------------------
 
         interaction = client.interactions.create(
             model="gemini-3.6-flash",
@@ -282,7 +612,7 @@ Do not provide multiple recommendations.
         raw_output = interaction.output_text.strip()
 
         # -----------------------------------------------------
-        # 9. REMOVE MARKDOWN CODE FENCES IF PRESENT
+        # 9. REMOVE CODE FENCES IF GEMINI ADDS THEM
         # -----------------------------------------------------
 
         if raw_output.startswith("```json"):
@@ -297,69 +627,149 @@ Do not provide multiple recommendations.
         raw_output = raw_output.strip()
 
         # -----------------------------------------------------
-        # 10. CONVERT JSON STRING TO PYTHON DICTIONARY
+        # 10. PARSE JSON
         # -----------------------------------------------------
 
         ai_data = json.loads(raw_output)
 
         # -----------------------------------------------------
-        # 11. GET RECOMMENDATION
+        # 11. GET DATA
         # -----------------------------------------------------
 
+        reply = ai_data.get(
+            "reply",
+            "",
+        )
+
+        intent = ai_data.get(
+            "intent",
+            "unsupported",
+        )
+
         recommendation = ai_data.get(
-            "recommendation",
-            {}
+            "recommendation"
         )
 
         # -----------------------------------------------------
-        # 12. RETURN RESPONSE TO REACT
+        # 12. VALIDATE INTENT
+        # -----------------------------------------------------
+
+        allowed_intents = {
+            "practice",
+            "knowledge",
+            "external",
+            "unsupported",
+        }
+
+        if intent not in allowed_intents:
+            intent = "unsupported"
+            recommendation = None
+            ai_data["action"] = None
+
+        # -----------------------------------------------------
+        # 13. VALIDATE RECOMMENDATION
+        # -----------------------------------------------------
+
+        if intent == "practice":
+
+            allowed_types = {
+                "meditation",
+                "breathing",
+                "yoga",
+                "deep_dive",
+            }
+
+            if not isinstance(
+                recommendation,
+                dict
+            ):
+
+                recommendation = None
+
+            elif recommendation.get("type") not in allowed_types:
+
+                recommendation = None
+
+        else:
+
+            recommendation = None
+
+        # -----------------------------------------------------
+        # 14. BUILD SAFE ACTION
+        # -----------------------------------------------------
+
+        action = build_action(ai_data)
+
+        # -----------------------------------------------------
+        # 15. RETURN RESPONSE
         # -----------------------------------------------------
 
         return Response(
             {
-                "reply": ai_data.get(
-                    "reply",
-                    ""
-                ),
-
+                "reply": reply,
+                "intent": intent,
                 "recommendation": recommendation,
+                "action": action,
             },
             status=status.HTTP_200_OK,
         )
 
     # ---------------------------------------------------------
-    # 13. INVALID GEMINI JSON
+    # 16. INVALID JSON
     # ---------------------------------------------------------
 
     except json.JSONDecodeError:
 
-        print("Gemini returned invalid JSON:")
+        print(
+            "Gemini returned invalid JSON:"
+        )
+
         print(raw_output)
 
         return Response(
             {
-                "error": (
+                "error":
                     "FlowState AI returned an invalid "
                     "response format."
-                )
             },
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
     # ---------------------------------------------------------
-    # 14. OTHER ERRORS
+    # 17. OTHER ERRORS
     # ---------------------------------------------------------
 
-    except Exception as e:
+    except Exception as error:
 
-        print(
-            "Gemini Error:",
-            repr(e)
-        )
+        print("Gemini Error:", repr(error))
 
+        error_message = str(error).lower()
+
+        # Gemini rate-limit / quota error
+        if (
+            "429" in error_message
+            or "too_many_requests" in error_message
+            or "quota" in error_message
+            or "rate limit" in error_message
+        ):
+            return Response(
+                {
+                    "error": (
+                        "FlowState AI is temporarily unavailable because "
+                        "the Gemini API quota has been reached. "
+                        "Please try again later."
+                    )
+                },
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+
+        # Other unexpected Gemini errors
         return Response(
             {
-                "error": str(e)
+                "error": (
+                    "FlowState AI is temporarily unavailable. "
+                    "Please try again."
+                )
             },
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
