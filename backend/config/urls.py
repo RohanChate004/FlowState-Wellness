@@ -2,6 +2,15 @@ from django.contrib import admin
 from django.urls import include, path
 from django.conf import settings
 from django.conf.urls.static import static
+from django.http import JsonResponse
+from django.urls import path
+
+urlpatterns = [
+    path("", lambda request: JsonResponse({
+        "status": "ok",
+        "message": "FlowState backend is running"
+    })),
+]
 
 
 urlpatterns = [
