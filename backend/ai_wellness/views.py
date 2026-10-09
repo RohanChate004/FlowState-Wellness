@@ -344,21 +344,23 @@ GUIDELINES:
 - Use an external source only when genuinely helpful.
 
 
+
 Return ONLY valid JSON with this structure:
-{
+{{
     "reply": "A friendly conversational response.",
     "intent": "practice",
-    "recommendation": {
+    "recommendation": {{
         "title": "A title based on the available database content",
         "description": "A short explanation using database information",
         "asana_ids": [12]
-    },
-    "action": {
+    }},
+    "action": {{
         "type": "internal",
         "label": "View recommended pose",
         "route": "/asanas/12"
-    }
-}
+    }}
+}}
+
 
 Rules:
 - recommendation must be null if no suitable database asana exists.
