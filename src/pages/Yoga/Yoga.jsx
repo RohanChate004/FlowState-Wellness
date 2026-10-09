@@ -1,1788 +1,1459 @@
-import API_BASE_URL from "../../services/api";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+
 import { Link, useNavigate } from "react-router-dom";
+
 import Navbar from "../../components/Navbar/Navbar";
+
+import Footer from "../../components/Footer/Footer";
+
+import API_BASE_URL from "../../services/api";
 
 const API_BASE = `${API_BASE_URL}/api/yoga`;
 
 const navItems = [
+
   { id: "sos", label: "SOS Reset", icon: "⚡" },
+
   { id: "cycle", label: "Cycle", icon: "🌙" },
+
   { id: "deep-dive", label: "Deep Dive", icon: "🌿" },
-  { id: "daily", label: "Daily", icon: "🌱" },
+
+  { id: "daily", label: "Daily", icon: "☀️" },
+
   { id: "asanas", label: "Asanas", icon: "🧘" },
+
   { id: "programs", label: "Programs", icon: "📋" },
+
 ];
 
 const feelings = [
-  {
-    value: "anxious",
-    icon: "🌧️",
-    title: "Anxious",
-    text: "Slow down and reconnect",
-  },
-  {
-    value: "sore",
-    icon: "💺",
-    title: "Sore",
-    text: "Gentle movement & mobility",
-  },
-  {
-    value: "wired",
-    icon: "⚡",
-    title: "Wired",
-    text: "Shift toward a calmer pace",
-  },
-  {
-    value: "cramping",
-    icon: "🌙",
-    title: "Cramping",
-    text: "Choose gentle movement",
-  },
-  {
-    value: "low_energy",
-    icon: "🌱",
-    title: "Low Energy",
-    text: "Keep your practice light",
-  },
+
+  { value: "anxious", icon: "🌧️", title: "Anxious", text: "Slow down and reconnect" },
+
+  { value: "sore", icon: "🪷", title: "Sore", text: "Gentle movement and mobility" },
+
+  { value: "wired", icon: "⚡", title: "Wired", text: "Find a calmer pace" },
+
+  { value: "cramping", icon: "🌙", title: "Cramping", text: "Choose gentle movement" },
+
+  { value: "low_energy", icon: "🌱", title: "Low energy", text: "Keep it light today" },
+
 ];
 
-const cyclePhaseUI = {
-  menstrual: {
-    icon: "🌙",
-    phase: "Phase 1",
-    accent: "rose",
-    bg: "bg-rose-50",
-    selected: "border-rose-300 bg-rose-50",
-  },
-  follicular: {
-    icon: "🌱",
-    phase: "Phase 2",
-    accent: "green",
-    bg: "bg-green-50",
-    selected: "border-green-300 bg-green-50",
-  },
-  ovulation: {
-    icon: "☀️",
-    phase: "Phase 3",
-    accent: "amber",
-    bg: "bg-amber-50",
-    selected: "border-amber-300 bg-amber-50",
-  },
-  luteal: {
-    icon: "🍃",
-    phase: "Phase 4",
-    accent: "emerald",
-    bg: "bg-emerald-50",
-    selected: "border-emerald-300 bg-emerald-50",
-  },
+const cycleUI = {
+
+  menstrual: { icon: "🌙", phase: "PHASE 01", color: "rose" },
+
+  follicular: { icon: "🌱", phase: "PHASE 02", color: "green" },
+
+  ovulation: { icon: "☀️", phase: "PHASE 03", color: "amber" },
+
+  luteal: { icon: "🍃", phase: "PHASE 04", color: "emerald" },
+
 };
 
 const deepDiveFocuses = [
-  {
-    slug: "stress-calm",
-    icon: "🌿",
-    title: "Stress & Calm",
-    description:
-      "Slow down, release tension, and create space for calmer movement and breathing.",
-    category: "Mental Wellness",
-  },
-  {
-    slug: "back-body-relief",
-    icon: "🧍",
-    title: "Back & Body Relief",
-    description:
-      "Explore gentle movement and mobility for stiffness, tension, and everyday body discomfort.",
-    category: "Physical Recovery",
-  },
-  {
-    slug: "energy-focus",
-    icon: "⚡",
-    title: "Energy & Focus",
-    description:
-      "Refresh your body and mind with movement designed to help you feel more awake and present.",
-    category: "Energy & Clarity",
-  },
-  {
-    slug: "better-sleep",
-    icon: "🌙",
-    title: "Better Sleep",
-    description:
-      "Ease into a slower rhythm with gentle practices that support rest and relaxation.",
-    category: "Rest & Recovery",
-  },
+
+  { slug: "stress-calm", icon: "🌿", title: "Stress & Calm", description: "Slow down and release tension.", category: "Mind" },
+
+  { slug: "back-body-relief", icon: "🧍", title: "Back & Body Relief", description: "Gentle movement for everyday stiffness.", category: "Body" },
+
+  { slug: "energy-focus", icon: "⚡", title: "Energy & Focus", description: "Refresh your body and attention.", category: "Energy" },
+
+  { slug: "better-sleep", icon: "🌙", title: "Better Sleep", description: "Ease into rest with a slower practice.", category: "Rest" },
+
 ];
+
+// Keep the existing Programs content and presentation intentionally unchanged.
 
 const programs = [
+
   {
+
     title: "7-Day Beginner Flow",
+
     type: "Beginner",
+
     duration: "7 Days",
-    description:
-      "Build a simple yoga habit with approachable daily practices.",
-    image:
-      "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=85",
+
+    description: "Build a simple yoga habit with approachable daily practices.",
+
+    image: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=85",
+
   },
+
   {
+
     title: "Morning Energy Flow",
+
     type: "Morning",
+
     duration: "15–30 min",
-    description:
-      "Start your day with mindful movement and energizing practice.",
-    image:
-      "https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=800&q=85",
+
+    description: "Start your day with mindful movement and energizing practice.",
+
+    image: "https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=800&q=85",
+
   },
+
   {
+
     title: "Gentle Recovery",
+
     type: "Recovery",
+
     duration: "10–30 min",
-    description:
-      "Slow practices for lighter days and softer movement.",
-    image:
-      "https://images.unsplash.com/photo-1552196563-55cd4e45efb3?auto=format&fit=crop&w=800&q=85",
+
+    description: "Slow practices for lighter days and softer movement.",
+
+    image: "https://images.unsplash.com/photo-1552196563-55cd4e45efb3?auto=format&fit=crop&w=800&q=85",
+
   },
+
 ];
 
+// Manual image URLs for the Yoga page. Add more verified URLs here as needed.
+// This direct Cloudinary URL is the verified image URL supplied for Adho Mukha Svanasana.
+const manualAsanaImages = {
+  "Adho Mukha Svanasana":
+    "https://res.cloudinary.com/lluailha/image/upload/v1791444771/media/yoga/asanas/images/Adho_Mukha_Svanasana_ttcapa.jpg",
+
+  "Anjaneyasana":
+    "https://res.cloudinary.com/lluailha/image/upload/v1791444771/media/yoga/asanas/images/Anjaneyasana_bnkgzu.jpg",
+
+  "Ardha Matsyendrasana":
+    "https://res.cloudinary.com/lluailha/image/upload/v1791444771/media/yoga/asanas/images/Ardha_Matsendrasana_r1baey.jpg",
+
+  "Baddha Konasana":
+    "https://res.cloudinary.com/lluailha/image/upload/v1791444771/media/yoga/asanas/images/Baddha_Konasana_ydpilm.jpg",
+
+  "Balasana":
+    "https://res.cloudinary.com/lluailha/image/upload/v1791444771/media/yoga/asanas/images/Balasana_kb5dhr.jpg",
+
+  "Bhujangasana":
+    "https://res.cloudinary.com/lluailha/image/upload/v1791444771/media/yoga/asanas/images/Bhujangasana_aahquh.jpg",
+
+  Bitilasana:
+    "https://res.cloudinary.com/lluailha/image/upload/v1791444771/media/yoga/asanas/images/Bitilasana_ttxekd.jpg",
+
+  "Garudasana":
+    "https://res.cloudinary.com/lluailha/image/upload/v1791444771/media/yoga/asanas/images/Garudasana_fp3fgl.jpg",
+
+  "Marjaryasana":
+    "https://res.cloudinary.com/lluailha/image/upload/v1791444771/media/yoga/asanas/images/Marjaryeasana_jmon6g.jpg",
+
+  "Matsyasana":
+    "https://res.cloudinary.com/lluailha/image/upload/v1791444771/media/yoga/asanas/images/Matsyasana_kcgrgg.jpg",
+
+  "Paschimottanasana":
+    "https://res.cloudinary.com/lluailha/image/upload/v1791444771/media/yoga/asanas/images/Paschimottasana_w1s0fz.jpg",
+
+  "Savasana":
+    "https://res.cloudinary.com/lluailha/image/upload/v1791444771/media/yoga/asanas/images/Savasana_scdcyc.jpg",
+
+  "Setu Bandhasana":
+    "https://res.cloudinary.com/lluailha/image/upload/v1791444771/media/yoga/asanas/images/Setu_Bandhasana_pri5eu.jpg",
+
+  "Sukasana":
+    "https://res.cloudinary.com/lluailha/image/upload/v1791444771/media/yoga/asanas/images/Sukasana_dyw2us.jpg",
+
+  "Tadasana":
+    "https://res.cloudinary.com/lluailha/image/upload/v1791444771/media/yoga/asanas/images/Tadasana_idntdx.jpg",
+
+  "Trikonasana":
+    "https://res.cloudinary.com/lluailha/image/upload/v1791444771/media/yoga/asanas/images/Trikonasana_ixevg5.jpg",
+
+  "Utkatasana":
+    "https://res.cloudinary.com/lluailha/image/upload/v1791444771/media/yoga/asanas/images/Utkatasana_dabjql.jpg",
+
+  "Virabhadrasana I":
+    "https://res.cloudinary.com/lluailha/image/upload/v1791444771/media/yoga/asanas/images/Virabhadrasana_I_uwjzfq.jpg",
+
+  "Virabhadrasana II":
+    "https://res.cloudinary.com/lluailha/image/upload/v1791444771/media/yoga/asanas/images/Virabhadrasana_II_wb7zem.jpg",
+
+  "Vrikasana":
+    "https://res.cloudinary.com/lluailha/image/upload/v1791444771/media/yoga/asanas/images/Vrikasana_vd0ziu.jpg",
+};
+
+
+
+const getAsanaImage = (asana) => {
+  const name = String(asana?.name || "").trim().toLowerCase();
+  const sanskritName = String(asana?.sanskrit_name || "")
+    .trim()
+    .toLowerCase();
+
+  const images = Object.fromEntries(
+    Object.entries(manualAsanaImages).map(([key, url]) => [
+      key.trim().toLowerCase(),
+      url,
+    ])
+  );
+
+  return (
+    images[name] ||
+    images[sanskritName] ||
+    asana?.image_url ||
+    ""
+  );
+};
+
+const categories = [
+
+  "All",
+
+  "Standing",
+
+  "Seated",
+
+  "Backbends",
+
+  "Forward Bends",
+
+  "Twists",
+
+  "Inversions",
+
+  "Balance",
+
+  "Hip Openers",
+
+  "Relaxation",
+
+];
+
+const getList = (data) => {
+
+  if (Array.isArray(data)) return data;
+
+  if (Array.isArray(data?.results)) return data.results;
+
+  if (Array.isArray(data?.data)) return data.data;
+
+  return [];
+
+};
+
+const textValue = (value) => {
+
+  if (Array.isArray(value)) return value.join(" ");
+
+  if (value && typeof value === "object") return Object.values(value).join(" ");
+
+  return value == null ? "" : String(value);
+
+};
+
 function Yoga() {
+
   const navigate = useNavigate();
+
   const [activeSection, setActiveSection] = useState("sos");
 
-  const [selectedFeeling, setSelectedFeeling] = useState(null);
+  const [selectedFeeling, setSelectedFeeling] = useState("");
+
   const [sosRecommendations, setSosRecommendations] = useState([]);
+
   const [sosLoading, setSosLoading] = useState(false);
+
   const [sosError, setSosError] = useState("");
 
-  const [cyclePhasesData, setCyclePhasesData] = useState([]);
-  const [selectedCyclePhase, setSelectedCyclePhase] = useState(null);
-  const [loadingCyclePhases, setLoadingCyclePhases] = useState(true);
+  const [cyclePhases, setCyclePhases] = useState([]);
+
+  const [cycleLoading, setCycleLoading] = useState(true);
+
   const [cycleError, setCycleError] = useState("");
 
   const [asanas, setAsanas] = useState([]);
-  const [loadingAsanas, setLoadingAsanas] = useState(true);
+
+  const [asanasLoading, setAsanasLoading] = useState(true);
+
   const [asanaError, setAsanaError] = useState("");
 
-  /* =====================================================
-     ACTIVE SECTION OBSERVER
-  ====================================================== */
+  const [searchInput, setSearchInput] = useState("");
+
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const [selectedCategory, setSelectedCategory] = useState("All");
+
+  const [showAllAsanas, setShowAllAsanas] = useState(false);
 
   useEffect(() => {
-    const sections = navItems
-      .map((item) => document.getElementById(item.id))
-      .filter(Boolean);
+
+    const sections = navItems.map(({ id }) => document.getElementById(id)).filter(Boolean);
+
+    if (!("IntersectionObserver" in window)) return undefined;
 
     const observer = new IntersectionObserver(
-      (entries) => {
-        const visibleEntry = entries
-          .filter((entry) => entry.isIntersecting)
-          .sort(
-            (a, b) =>
-              b.intersectionRatio - a.intersectionRatio
-          )[0];
 
-        if (visibleEntry) {
-          setActiveSection(visibleEntry.target.id);
-        }
+      (entries) => {
+
+        const visible = entries
+
+          .filter((entry) => entry.isIntersecting)
+
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+
+        if (visible) setActiveSection(visible.target.id);
+
       },
-      {
-        rootMargin: "-25% 0px -60% 0px",
-        threshold: [0.1, 0.25, 0.5],
-      }
+
+      { rootMargin: "-20% 0px -65% 0px", threshold: [0.1, 0.25, 0.5] }
+
     );
 
     sections.forEach((section) => observer.observe(section));
 
     return () => observer.disconnect();
+
   }, []);
 
-  /* =====================================================
-     FETCH ASANAS
-  ====================================================== */
-
   useEffect(() => {
-    const fetchAsanas = async () => {
+
+    const controller = new AbortController();
+
+    async function loadAsanas() {
+
       try {
-        setLoadingAsanas(true);
+
+        setAsanasLoading(true);
+
         setAsanaError("");
 
-        const response = await fetch(
-          `${API_BASE}/asanas/`
-        );
+        const response = await fetch(`${API_BASE}/asanas/`, { signal: controller.signal });
 
-        if (!response.ok) {
-          throw new Error("Failed to fetch asanas.");
-        }
+        if (!response.ok) throw new Error(`Asana request failed (${response.status})`);
 
         const data = await response.json();
 
-        setAsanas(data);
+        setAsanas(getList(data));
+
       } catch (error) {
-        console.error("Asana API Error:", error);
-        setAsanaError(
-          "Unable to load asanas right now."
-        );
+
+        if (error.name !== "AbortError") {
+
+          console.error("Asana API error:", error);
+
+          setAsanaError("We couldn't load the asana library. Check your connection and try again.");
+
+        }
+
       } finally {
-        setLoadingAsanas(false);
+
+        if (!controller.signal.aborted) setAsanasLoading(false);
+
       }
-    };
 
-    fetchAsanas();
+    }
+
+    loadAsanas();
+
+    return () => controller.abort();
+
   }, []);
-
-  /* =====================================================
-     FETCH CYCLE PHASES
-  ====================================================== */
 
   useEffect(() => {
-    const fetchCyclePhases = async () => {
+
+    const controller = new AbortController();
+
+    async function loadCyclePhases() {
+
       try {
-        setLoadingCyclePhases(true);
+
+        setCycleLoading(true);
+
         setCycleError("");
 
-        const response = await fetch(
-          `${API_BASE}/cycle-phases/`
-        );
+        const response = await fetch(`${API_BASE}/cycle-phases/`, { signal: controller.signal });
 
-        if (!response.ok) {
-          throw new Error(
-            "Failed to fetch cycle phases."
-          );
-        }
+        if (!response.ok) throw new Error(`Cycle request failed (${response.status})`);
 
         const data = await response.json();
 
-        setCyclePhasesData(data);
+        setCyclePhases(getList(data));
 
-        if (data.length > 0) {
-          setSelectedCyclePhase(data[0]);
-        }
       } catch (error) {
-        console.error("Cycle API Error:", error);
-        setCycleError(
-          "Unable to load cycle information right now."
-        );
-      } finally {
-        setLoadingCyclePhases(false);
-      }
-    };
 
-    fetchCyclePhases();
+        if (error.name !== "AbortError") {
+
+          console.error("Cycle API error:", error);
+
+          setCycleError("Cycle practices couldn't be loaded right now.");
+
+        }
+
+      } finally {
+
+        if (!controller.signal.aborted) setCycleLoading(false);
+
+      }
+
+    }
+
+    loadCyclePhases();
+
+    return () => controller.abort();
+
   }, []);
 
-  /* =====================================================
-     SOS RECOMMENDATIONS
-  ====================================================== */
+  const filteredAsanas = useMemo(() => {
+
+    const query = searchTerm.trim().toLowerCase();
+
+    return asanas.filter((asana) => {
+
+      const searchableText = [
+
+        asana.name,
+
+        asana.sanskrit_name,
+
+        asana.short_description,
+
+        asana.description,
+
+        asana.category,
+
+        asana.focus_area,
+
+        asana.benefits,
+
+        asana.difficulty,
+
+        asana.mood_tags,
+
+      ].map(textValue).join(" ").toLowerCase();
+
+      const matchesQuery = !query || searchableText.includes(query);
+
+      const categoryText = `${textValue(asana.category)} ${textValue(asana.focus_area)}`.toLowerCase();
+
+      const matchesCategory =
+
+        selectedCategory === "All" ||
+
+        categoryText.includes(selectedCategory.toLowerCase()) ||
+
+        (selectedCategory === "Relaxation" && /relax|restor|calm|breath|meditat/i.test(searchableText)) ||
+
+        (selectedCategory === "Hip Openers" && /hip|pigeon|butterfly|bound angle/i.test(searchableText)) ||
+
+        (selectedCategory === "Balance" && /balance|tree|warrior iii|eagle/i.test(searchableText)) ||
+
+        (selectedCategory === "Standing" && /standing|warrior|mountain|chair|triangle/i.test(searchableText)) ||
+
+        (selectedCategory === "Seated" && /seated|sitting|staff|butterfly|bound angle/i.test(searchableText)) ||
+
+        (selectedCategory === "Backbends" && /backbend|cobra|bridge|camel|wheel/i.test(searchableText)) ||
+
+        (selectedCategory === "Forward Bends" && /forward bend|forward fold|fold|uttanasana/i.test(searchableText)) ||
+
+        (selectedCategory === "Twists" && /twist|revolved|rotation/i.test(searchableText)) ||
+
+        (selectedCategory === "Inversions" && /inversion|headstand|shoulderstand|legs.up.the.wall/i.test(searchableText));
+
+      return matchesQuery && matchesCategory;
+
+    });
+
+  }, [asanas, searchTerm, selectedCategory]);
+
+  const visibleAsanas = showAllAsanas ? filteredAsanas : filteredAsanas.slice(0, 6);
+
+  const scrollToSection = (id) => {
+
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+
+  };
 
   const getSOSRecommendations = async () => {
-    if (!selectedFeeling) return;
+
+    if (!selectedFeeling || sosLoading) return;
 
     try {
+
       setSosLoading(true);
+
       setSosError("");
+
       setSosRecommendations([]);
 
-      const response = await fetch(
-        `${API_BASE}/sos/?mood=${encodeURIComponent(
-          selectedFeeling
-        )}`
-      );
+      const response = await fetch(`${API_BASE}/sos/?mood=${encodeURIComponent(selectedFeeling)}`);
 
-      if (!response.ok) {
-        throw new Error(
-          "Unable to get recommendations."
-        );
-      }
+      if (!response.ok) throw new Error(`SOS request failed (${response.status})`);
 
       const data = await response.json();
 
-      setSosRecommendations(data);
+      const recommendations = getList(data);
+
+      setSosRecommendations(recommendations);
+
+      if (recommendations.length === 0) setSosError("No matching practices were found. Try another feeling.");
+
     } catch (error) {
-      console.error(
-        "SOS recommendation error:",
-        error
-      );
 
-      setSosError(
-        "We couldn't create your practice right now. Please try again."
-      );
+      console.error("SOS recommendation error:", error);
+
+      setSosError("We couldn't create your practice right now. Please try again.");
+
     } finally {
+
       setSosLoading(false);
+
     }
+
   };
 
-  /* =====================================================
-     NAVIGATION
-  ====================================================== */
+  const startCyclePractice = (phase) => {
 
-  const scrollToSection = (id) => {
-    const section = document.getElementById(id);
+    if (!phase?.slug) return;
 
-    if (section) {
-      section.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
-    }
+    // CyclePractice can use this hash to scroll to its start control when it has id="start-practice".
+
+    navigate(`/cycle-practice/${phase.slug}#start-practice`);
+
   };
 
-  const startCyclePractice = () => {
-    if (!selectedCyclePhase) return;
+  const retryAsanas = () => {
 
-    navigate(
-      `/cycle-practice/${selectedCyclePhase.slug}`
-    );
+    setAsanaError("");
+
+    setAsanasLoading(true);
+
+    fetch(`${API_BASE}/asanas/`)
+
+      .then((response) => {
+
+        if (!response.ok) throw new Error(`Asana request failed (${response.status})`);
+
+        return response.json();
+
+      })
+
+      .then((data) => setAsanas(getList(data)))
+
+      .catch((error) => {
+
+        console.error("Asana API error:", error);
+
+        setAsanaError("We couldn't load the asana library. Check your connection and try again.");
+
+      })
+
+      .finally(() => setAsanasLoading(false));
+
   };
-
-  const getCycleUI = (slug) =>
-    cyclePhaseUI[slug] || {
-      icon: "🌿",
-      phase: "",
-      bg: "bg-green-50",
-      selected: "border-green-300 bg-green-50",
-    };
-
-  /* =====================================================
-     RENDER
-  ====================================================== */
 
   return (
-    <div className="min-h-screen bg-stone-50 text-gray-900">
+
+    <main className="min-h-screen bg-[#f7f8f4] text-slate-800">
+
       <Navbar />
 
-      {/* =====================================================
-          HERO / PRACTICE HUB
-      ====================================================== */}
+      {/* Compact hero and in-page navigation */}
 
-      <section className="px-4 pb-6 pt-8 sm:px-6 lg:px-10">
-        <div className="mx-auto max-w-7xl">
-          <div className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-gray-100">
+      <section className="px-4 pb-5 pt-6 sm:px-6 lg:px-8">
 
-            <div className="grid gap-8 px-5 py-8 sm:px-8 lg:grid-cols-[1.4fr_0.6fr] lg:px-10 lg:py-10">
+        <div className="mx-auto max-w-7xl overflow-hidden rounded-[2rem] border border-emerald-100 bg-white shadow-sm">
 
-              <div className="max-w-3xl">
-                <span className="inline-flex items-center rounded-full bg-green-50 px-3 py-1.5 text-xs font-semibold text-green-700">
-                  🌿 FlowState Yoga
-                </span>
+          <div className="grid gap-6 p-6 sm:p-8 lg:grid-cols-[1.4fr_0.6fr] lg:items-center lg:p-10">
 
-                <h1 className="mt-4 text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl">
-                  Find the practice that fits your moment.
-                </h1>
+            <div>
 
-                <p className="mt-4 max-w-2xl text-sm leading-7 text-gray-600 sm:text-base">
-                  Move, breathe, recover, and reconnect with
-                  a practice shaped around how you feel today.
-                </p>
+              <span className="inline-flex rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800">
 
-                <div className="mt-6 flex flex-wrap gap-2">
-                  <span className="rounded-full bg-gray-50 px-3 py-2 text-xs font-medium text-gray-600">
-                    🧠 Mental well-being
-                  </span>
+                FLOWSTATE · YOGA
 
-                  <span className="rounded-full bg-gray-50 px-3 py-2 text-xs font-medium text-gray-600">
-                    🧘 Physical recovery
-                  </span>
-
-                  <span className="rounded-full bg-gray-50 px-3 py-2 text-xs font-medium text-gray-600">
-                    🌙 Cycle-aware
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex items-center">
-                <div className="w-full rounded-3xl bg-green-50 p-6">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-3xl shadow-sm">
-                    🌿
-                  </div>
-
-                  <p className="mt-5 text-xs font-semibold uppercase tracking-wider text-green-700">
-                    Your practice
-                  </p>
-
-                  <h2 className="mt-1 text-xl font-bold">
-                    Your pace. Your moment.
-                  </h2>
-
-                  <p className="mt-2 text-sm leading-6 text-gray-600">
-                    Choose what feels right instead of
-                    forcing your body into a routine.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* QUICK NAVIGATION */}
-
-            <div className="border-t border-gray-100 px-5 py-4 sm:px-8">
-              <div className="flex items-center justify-between gap-4">
-                <p className="hidden text-xs font-semibold uppercase tracking-wider text-gray-400 sm:block">
-                  Explore FlowState
-                </p>
-
-                <div className="flex flex-1 gap-2 overflow-x-auto pb-1 sm:flex-none">
-                  {navItems.map((item) => (
-                    <button
-                      key={item.id}
-                      onClick={() =>
-                        scrollToSection(item.id)
-                      }
-                      className={`flex shrink-0 items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold transition ${activeSection === item.id
-                        ? "bg-green-700 text-white shadow-sm"
-                        : "bg-gray-50 text-gray-600 hover:bg-green-50 hover:text-green-700"
-                        }`}
-                    >
-                      <span>{item.icon}</span>
-                      {item.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* =====================================================
-          SOS RESET
-      ====================================================== */}
-
-      <section
-        id="sos"
-        className="scroll-mt-28 px-4 py-5 sm:px-6 lg:px-10"
-      >
-        <div className="mx-auto max-w-7xl overflow-hidden rounded-3xl bg-green-700 shadow-lg">
-
-          <div className="grid lg:grid-cols-[0.8fr_1.2fr]">
-
-            {/* SOS INTRO */}
-
-            <div className="p-6 text-white sm:p-8 lg:p-10">
-              <span className="inline-flex items-center rounded-full bg-white/10 px-3 py-1.5 text-xs font-semibold text-green-100">
-                ⚡ FlowState Reset
               </span>
 
-              <h2 className="mt-5 text-3xl font-bold">
-                Need a reset?
-              </h2>
+              <h1 className="mt-4 max-w-2xl text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl lg:text-5xl">
 
-              <p className="mt-3 max-w-md text-sm leading-7 text-green-50">
-                Tell us how you feel right now and find a
-                focused practice for the moment you're in.
+                Find your balance, one practice at a time.
+
+              </h1>
+
+              <p className="mt-3 max-w-xl text-sm leading-6 text-slate-600 sm:text-base">
+
+                Choose a quick reset, explore cycle-aware movement, or discover your next asana.
+
               </p>
-
-              <div className="mt-6 flex flex-wrap gap-2">
-                <span className="rounded-full bg-white/10 px-3 py-1.5 text-xs text-green-50">
-                  10–20 min
-                </span>
-
-                <span className="rounded-full bg-white/10 px-3 py-1.5 text-xs text-green-50">
-                  Personalized
-                </span>
-
-                <span className="rounded-full bg-white/10 px-3 py-1.5 text-xs text-green-50">
-                  Practice at your pace
-                </span>
-              </div>
-
-              <div className="mt-10 hidden lg:block">
-                <p className="text-xs font-semibold uppercase tracking-wider text-green-200">
-                  A simpler way to begin
-                </p>
-
-                <div className="mt-4 space-y-3">
-                  <div className="flex items-center gap-3">
-                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10 text-xs">
-                      1
-                    </span>
-                    <span className="text-sm text-green-50">
-                      Check in with yourself
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10 text-xs">
-                      2
-                    </span>
-                    <span className="text-sm text-green-50">
-                      Get a focused practice
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10 text-xs">
-                      3
-                    </span>
-                    <span className="text-sm text-green-50">
-                      Move at your own pace
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* SOS INTERACTION */}
-
-            <div className="bg-white p-5 sm:p-7 lg:p-8">
-
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-green-700">
-                  Quick Check-In
-                </p>
-
-                <h3 className="mt-1 text-xl font-bold">
-                  How are you feeling?
-                </h3>
-
-                <p className="mt-1 text-sm text-gray-500">
-                  Choose what feels closest to your current
-                  state.
-                </p>
-              </div>
-
-              {/* FEELINGS */}
-
-              <div className="mt-5 grid gap-2 sm:grid-cols-2">
-                {feelings.map((feeling) => (
-                  <button
-                    key={feeling.value}
-                    onClick={() => {
-                      setSelectedFeeling(feeling.value);
-                      setSosRecommendations([]);
-                      setSosError("");
-                    }}
-                    className={`rounded-2xl border p-3.5 text-left transition ${selectedFeeling === feeling.value
-                      ? "border-green-500 bg-green-50 ring-2 ring-green-100"
-                      : "border-gray-200 bg-gray-50 hover:border-green-300 hover:bg-green-50"
-                      }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-xl">
-                        {feeling.icon}
-                      </span>
-
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold text-gray-800">
-                          {feeling.title}
-                        </p>
-
-                        <p className="mt-0.5 text-xs text-gray-500">
-                          {feeling.text}
-                        </p>
-                      </div>
-
-                      {selectedFeeling ===
-                        feeling.value && (
-                          <span className="ml-auto text-green-700">
-                            ✓
-                          </span>
-                        )}
-                    </div>
-                  </button>
-                ))}
-              </div>
-
-              {/* ACTION */}
 
               <button
-                onClick={getSOSRecommendations}
-                disabled={
-                  !selectedFeeling || sosLoading
-                }
-                className={`mt-5 w-full rounded-full px-5 py-3.5 text-sm font-semibold transition ${selectedFeeling && !sosLoading
-                  ? "bg-green-700 text-white shadow-sm hover:bg-green-800"
-                  : "cursor-not-allowed bg-gray-200 text-gray-400"
-                  }`}
+
+                type="button"
+
+                onClick={() => scrollToSection("sos")}
+
+                className="mt-5 inline-flex min-h-11 items-center justify-center rounded-full bg-emerald-800 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
+
               >
-                {sosLoading
-                  ? "Creating Your Practice..."
-                  : selectedFeeling
-                    ? `Continue With ${feelings.find(
-                      (item) =>
-                        item.value ===
-                        selectedFeeling
-                    )?.title
-                    } →`
-                    : "Select How You're Feeling →"}
+
+                Find my practice <span className="ml-2">↗</span>
+
               </button>
 
-              <p className="mt-3 text-center text-xs text-gray-400">
-                Modify or skip movements whenever something
-                doesn't feel right.
-              </p>
-
-              {/* ERROR */}
-
-              {sosError && (
-                <div className="mt-5 rounded-2xl border border-red-100 bg-red-50 p-4 text-sm text-red-600">
-                  {sosError}
-                </div>
-              )}
-
-              {/* LOADING */}
-
-              {sosLoading && (
-                <div className="mt-6 rounded-3xl bg-green-50 p-7 text-center">
-                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-2xl shadow-sm">
-                    🧘
-                  </div>
-
-                  <h3 className="mt-4 text-base font-bold">
-                    Creating your FlowState practice...
-                  </h3>
-
-                  <p className="mt-1 text-xs text-gray-500">
-                    Finding movements that match how you
-                    feel.
-                  </p>
-                </div>
-              )}
-
-              {/* SINGLE SOS RESULT */}
-
-              {!sosLoading &&
-                sosRecommendations.length > 0 && (
-                  <div className="mt-7 border-t border-gray-100 pt-6">
-
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                      <div>
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-green-50 text-xl">
-                            🌿
-                          </div>
-
-                          <div>
-                            <p className="text-xs font-semibold uppercase tracking-wider text-green-700">
-                              Personalized Practice
-                            </p>
-
-                            <h3 className="text-xl font-bold">
-                              Your FlowState Reset
-                            </h3>
-                          </div>
-                        </div>
-
-                        <p className="mt-3 text-sm text-gray-500">
-                          A practice for how you're feeling
-                          <span className="font-semibold text-gray-700">
-                            {" "}
-                            ·{" "}
-                            {
-                              feelings.find(
-                                (item) =>
-                                  item.value ===
-                                  selectedFeeling
-                              )?.title
-                            }
-                          </span>
-                        </p>
-                      </div>
-
-                      <span className="w-fit rounded-full bg-green-50 px-3 py-1.5 text-xs font-semibold text-green-700">
-                        {sosRecommendations.length} practices
-                      </span>
-                    </div>
-
-                    {/* RECOMMENDATIONS */}
-
-                    <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                      {sosRecommendations.map(
-                        (asana) => (
-                          <Link
-                            key={asana.id}
-                            to={`/asanas/${asana.id}`}
-                            className="group rounded-2xl border border-gray-100 bg-gray-50 p-4 transition hover:-translate-y-0.5 hover:border-green-200 hover:bg-white hover:shadow-md"
-                          >
-                            <div className="flex items-start justify-between gap-3">
-                              <div>
-                                <p className="text-xs font-semibold text-green-700">
-                                  {
-                                    asana.sanskrit_name
-                                  }
-                                </p>
-
-                                <h4 className="mt-1 font-bold text-gray-900">
-                                  {asana.name}
-                                </h4>
-                              </div>
-
-                              <span className="text-lg text-green-700 transition group-hover:translate-x-1">
-                                →
-                              </span>
-                            </div>
-
-                            <p className="mt-2 line-clamp-2 text-xs leading-5 text-gray-500">
-                              {
-                                asana.short_description
-                              }
-                            </p>
-
-                            <div className="mt-3 flex flex-wrap gap-2">
-                              <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-medium text-gray-500">
-                                {asana.category}
-                              </span>
-
-                              <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-medium text-gray-500">
-                                {asana.difficulty}
-                              </span>
-
-                              {asana.duration_seconds && (
-                                <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-medium text-gray-500">
-                                  {asana.duration_seconds >=
-                                    60
-                                    ? `${Math.floor(
-                                      asana.duration_seconds /
-                                      60
-                                    )} min`
-                                    : `${asana.duration_seconds} sec`}
-                                </span>
-                              )}
-                            </div>
-                          </Link>
-                        )
-                      )}
-                    </div>
-
-                    {/* PRACTICE NOTE */}
-
-                    <div className="mt-5 rounded-2xl bg-green-50 px-4 py-3.5">
-                      <p className="text-xs leading-5 text-gray-600">
-                        <span className="font-semibold text-green-800">
-                          Your practice, your pace.
-                        </span>{" "}
-                        Choose any movement above to explore
-                        its instructions, benefits,
-                        modifications, and safety guidance.
-                      </p>
-                    </div>
-                  </div>
-                )}
             </div>
+
+            <div className="rounded-3xl bg-[#edf5e9] p-5 sm:p-6">
+
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-800">A gentle reminder</p>
+
+              <p className="mt-3 text-xl font-medium leading-7 text-slate-800">Your practice should meet you where you are.</p>
+
+              <div className="mt-5 flex flex-wrap gap-2 text-xs font-medium text-slate-600">
+
+                <span className="rounded-full bg-white px-3 py-2">Mind</span>
+
+                <span className="rounded-full bg-white px-3 py-2">Body</span>
+
+                <span className="rounded-full bg-white px-3 py-2">Breath</span>
+
+              </div>
+
+            </div>
+
           </div>
+
+          <nav aria-label="Yoga sections" className="border-t border-slate-100 px-4 py-3 sm:px-6">
+
+            <div className="flex gap-2 overflow-x-auto pb-1">
+
+              {navItems.map((item) => (
+
+                <button
+
+                  key={item.id}
+
+                  type="button"
+
+                  onClick={() => scrollToSection(item.id)}
+
+                  className={`flex shrink-0 items-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-emerald-500 ${activeSection === item.id
+
+                    ? "bg-emerald-800 text-white"
+
+                    : "bg-slate-50 text-slate-600 hover:bg-emerald-50 hover:text-emerald-900"
+
+                    }`}
+
+                >
+
+                  <span aria-hidden="true">{item.icon}</span>{item.label}
+
+                </button>
+
+              ))}
+
+            </div>
+
+          </nav>
+
         </div>
+
       </section>
 
-      {/* =====================================================
-          CYCLE AWARENESS
-      ====================================================== */}
+      {/* SOS Reset */}
 
-      <section
-        id="cycle"
-        className="scroll-mt-28 px-4 py-8 sm:px-6 lg:px-10"
-      >
-        <div className="mx-auto max-w-7xl">
+      <section id="sos" className="scroll-mt-28 px-4 py-5 sm:px-6 lg:px-8">
 
-          <div className="mb-6">
-            <span className="inline-flex rounded-full bg-green-50 px-3 py-1.5 text-xs font-semibold text-green-700">
-              🌙 Cycle-Aware Practice
-            </span>
+        <div className="mx-auto grid max-w-7xl overflow-hidden rounded-[2rem] border border-emerald-100 bg-white shadow-sm lg:grid-cols-[0.8fr_1.2fr]">
 
-            <h2 className="mt-3 text-2xl font-bold sm:text-3xl">
-              Yoga that moves with your cycle.
-            </h2>
+          <div className="bg-emerald-900 p-6 text-white sm:p-8">
 
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600">
-              Explore different practice styles for each phase,
-              from restorative movement to more active practice.
+            <span className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-200">01 · Quick reset</span>
+
+            <h2 className="mt-3 text-2xl font-semibold sm:text-3xl">How are you feeling?</h2>
+
+            <p className="mt-3 max-w-sm text-sm leading-6 text-emerald-50">
+
+              Pick the feeling that fits best. We’ll find relevant poses from your asana library.
+
             </p>
+
           </div>
 
-          {/* PHASE CARDS */}
+          <div className="p-5 sm:p-7">
 
-          {loadingCyclePhases ? (
-            <div className="rounded-3xl bg-white p-10 text-center shadow-sm ring-1 ring-gray-100">
-              <div className="text-3xl">🌙</div>
+            <div className="grid gap-2 sm:grid-cols-2">
 
-              <p className="mt-3 text-sm text-gray-500">
-                Loading cycle information...
-              </p>
-            </div>
-          ) : cycleError ? (
-            <div className="rounded-3xl border border-red-100 bg-red-50 p-7 text-center">
-              <p className="text-sm text-red-600">
-                {cycleError}
-              </p>
-            </div>
-          ) : cyclePhasesData.length === 0 ? (
-            <div className="rounded-3xl bg-white p-10 text-center shadow-sm ring-1 ring-gray-100">
-              <p className="text-sm text-gray-500">
-                No cycle information available yet.
-              </p>
-            </div>
-          ) : (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {cyclePhasesData.map((phase) => {
-                const ui = getCycleUI(phase.slug);
+              {feelings.map((feeling) => (
 
-                const isSelected =
-                  selectedCyclePhase?.id ===
-                  phase.id;
+                <button
 
-                return (
-                  <button
-                    key={phase.id}
-                    onClick={() =>
-                      setSelectedCyclePhase(phase)
-                    }
-                    className={`group rounded-3xl border p-5 text-left shadow-sm transition ${isSelected
-                      ? `${ui.selected} shadow-md`
-                      : "border-gray-100 bg-white hover:-translate-y-1 hover:border-green-200 hover:shadow-md"
-                      }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div
-                        className={`flex h-12 w-12 items-center justify-center rounded-2xl ${ui.bg} text-2xl`}
-                      >
-                        {ui.icon}
-                      </div>
+                  key={feeling.value}
 
-                      <span className="rounded-full bg-white/80 px-2.5 py-1 text-[10px] font-semibold text-gray-500 shadow-sm">
-                        {ui.phase}
-                      </span>
-                    </div>
+                  type="button"
 
-                    <h3 className="mt-5 text-lg font-bold capitalize">
-                      {phase.name}
-                    </h3>
+                  aria-pressed={selectedFeeling === feeling.value}
 
-                    <p className="mt-1 text-xs font-semibold text-green-700">
-                      {phase.energy_context}
-                    </p>
+                  onClick={() => {
 
-                    <p className="mt-3 line-clamp-2 text-xs leading-5 text-gray-500">
-                      {phase.practice_style}
-                    </p>
+                    setSelectedFeeling(feeling.value);
 
-                    <div className="mt-4 space-y-1.5">
-                      {phase.recommendations
-                        .filter(
-                          (recommendation) =>
-                            recommendation.is_active
-                        )
-                        .slice(0, 3)
-                        .map(
-                          (recommendation) => (
-                            <p
-                              key={
-                                recommendation.id
-                              }
-                              className="text-xs text-gray-500"
-                            >
-                              <span className="mr-1 text-green-600">
-                                •
-                              </span>
-                              {
-                                recommendation
-                                  .asana.name
-                              }
-                            </p>
-                          )
-                        )}
-                    </div>
+                    setSosRecommendations([]);
 
-                    <div className="mt-5 flex items-center justify-between border-t border-black/5 pt-4">
-                      <span className="text-[10px] font-medium uppercase tracking-wider text-gray-400">
-                        {phase.intensity}
-                      </span>
+                    setSosError("");
 
-                      <span className="text-xs font-semibold text-green-700">
-                        {isSelected
-                          ? "Selected ✓"
-                          : "Explore →"}
-                      </span>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          )}
+                  }}
 
-          {/* SELECTED PHASE */}
+                  className={`rounded-2xl border p-3.5 text-left transition focus:outline-none focus:ring-2 focus:ring-emerald-500 ${selectedFeeling === feeling.value
 
-          {selectedCyclePhase && (
-            <div className="mt-5 overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-gray-100">
+                    ? "border-emerald-600 bg-emerald-50"
 
-              <div className="border-b border-gray-100 p-6 sm:p-7">
-                <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                    : "border-slate-200 bg-white hover:border-emerald-300 hover:bg-emerald-50/50"
 
-                  <div className="max-w-2xl">
-                    <span className="text-xs font-semibold uppercase tracking-wider text-green-700">
-                      {
-                        selectedCyclePhase.practice_style
-                      }
+                    }`}
+
+                >
+
+                  <span className="flex items-center gap-3">
+
+                    <span className="text-xl" aria-hidden="true">{feeling.icon}</span>
+
+                    <span className="min-w-0 flex-1">
+
+                      <span className="block text-sm font-semibold text-slate-800">{feeling.title}</span>
+
+                      <span className="mt-0.5 block text-xs text-slate-500">{feeling.text}</span>
+
                     </span>
 
-                    <h3 className="mt-2 text-2xl font-bold capitalize">
-                      {selectedCyclePhase.name} Practice
-                    </h3>
+                    {selectedFeeling === feeling.value && <span className="text-emerald-800">✓</span>}
 
-                    <p className="mt-2 text-sm leading-6 text-gray-600">
-                      {
-                        selectedCyclePhase.description
-                      }
-                    </p>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2">
-                    <span className="rounded-full bg-green-50 px-3 py-1.5 text-xs font-semibold text-green-700">
-                      {
-                        selectedCyclePhase.intensity
-                      }
-                    </span>
-
-                    <span className="rounded-full bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-500">
-                      {
-                        selectedCyclePhase.duration_minutes
-                      }{" "}
-                      min
-                    </span>
-                  </div>
-                </div>
-
-                <div className="mt-6 flex flex-wrap gap-2">
-                  <span className="rounded-full bg-gray-50 px-3 py-1.5 text-xs text-gray-600">
-                    Energy ·{" "}
-                    {
-                      selectedCyclePhase.energy_context
-                    }
                   </span>
 
-                  <span className="rounded-full bg-gray-50 px-3 py-1.5 text-xs text-gray-600">
-                    Practice ·{" "}
-                    {
-                      selectedCyclePhase.practice_style
-                    }
-                  </span>
-                </div>
-              </div>
+                </button>
 
-              {/* RECOMMENDATIONS */}
+              ))}
 
-              <button
-                onClick={startCyclePractice}
-                className="mt-6 rounded-full bg-green-700 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-green-800"
-              >
-                Start This Practice →
-              </button>
             </div>
-          )}
-        </div>
-      </section>
 
-      {/* =====================================================
-          DEEP DIVE
-      ====================================================== */}
-      <section
-        id="deep-dive"
-        className="scroll-mt-28 px-4 py-10 sm:px-6 lg:px-10"
-      >
-        <div className="mx-auto max-w-7xl">
+            <button
 
-          <div className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-gray-100">
+              type="button"
 
-            <div className="grid lg:grid-cols-[1.2fr_0.8fr]">
+              onClick={getSOSRecommendations}
 
-              {/* LEFT CONTENT */}
+              disabled={!selectedFeeling || sosLoading}
 
-              <div className="p-6 sm:p-8 lg:p-10">
+              className="mt-4 w-full rounded-full bg-emerald-800 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-900 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500"
 
-                <span className="inline-flex rounded-full bg-green-50 px-3 py-1.5 text-xs font-semibold text-green-700">
-                  🌿 Focused Wellness
-                </span>
+            >
 
-                <h2 className="mt-4 text-3xl font-bold tracking-tight sm:text-4xl">
-                  Go deeper into what matters to you.
-                </h2>
+              {sosLoading ? "Finding practices…" : "Find my reset →"}
 
-                <p className="mt-4 max-w-2xl text-sm leading-7 text-gray-600 sm:text-base">
-                  Explore focused yoga practices designed around how
-                  you feel right now. Whether you need calm, relief,
-                  energy, or better rest, choose a deeper practice
-                  that supports your well-being.
-                </p>
+            </button>
 
-                {/* WELLNESS AREAS */}
+            {sosError && <p role="alert" className="mt-3 rounded-xl bg-amber-50 p-3 text-sm text-amber-800">{sosError}</p>}
 
-                <div className="mt-8 grid gap-3 sm:grid-cols-2">
+            {sosLoading && <p role="status" className="mt-3 text-sm text-slate-500">Loading recommendations…</p>}
 
-                  {deepDiveFocuses.map((focus) => (
-                    <div
-                      key={focus.slug}
-                      className="rounded-2xl bg-stone-50 p-4 transition hover:bg-green-50"
+            {!sosLoading && sosRecommendations.length > 0 && (
+
+              <div className="mt-5 border-t border-slate-100 pt-5">
+
+                <div className="mb-3 flex items-center justify-between gap-3">
+
+                  <h3 className="font-semibold text-slate-900">Your suggested poses</h3>
+
+                  <span className="text-xs text-slate-500">{sosRecommendations.length} found</span>
+
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+
+                  {sosRecommendations.map((asana) => (
+
+                    <Link
+
+                      key={asana.id}
+
+                      to={`/asanas/${asana.id}`}
+
+                      className="rounded-2xl border border-slate-200 p-4 transition hover:border-emerald-300 hover:bg-emerald-50/50"
+
                     >
-                      <div className="flex items-center gap-3">
 
-                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-xl shadow-sm">
-                          {focus.icon}
-                        </div>
+                      <p className="text-xs text-emerald-800">{asana.sanskrit_name || "Yoga asana"}</p>
 
-                        <div>
-                          <h3 className="font-bold text-gray-900">
-                            {focus.title}
-                          </h3>
+                      <p className="mt-1 font-semibold text-slate-900">{asana.name}</p>
 
-                          <p className="mt-1 text-xs leading-5 text-gray-500">
-                            {focus.description}
-                          </p>
-                        </div>
+                      <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">{asana.short_description || asana.description}</p>
 
-                      </div>
-                    </div>
+                      <span className="mt-3 inline-block text-xs font-semibold text-emerald-800">View pose →</span>
+
+                    </Link>
+
                   ))}
 
                 </div>
 
-                {/* SINGLE BUTTON */}
+              </div>
+
+            )}
+
+          </div>
+
+        </div>
+
+      </section>
+
+      {/* Cycle-aware practice: selecting a phase starts that phase route directly */}
+
+      <section id="cycle" className="scroll-mt-28 px-4 py-6 sm:px-6 lg:px-8">
+
+        <div className="mx-auto max-w-7xl">
+
+          <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+
+            <div>
+
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-800">02 · Cycle-aware practice</p>
+
+              <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">Move with your cycle.</h2>
+
+            </div>
+
+            <p className="max-w-md text-sm leading-6 text-slate-500">Choose a phase to open its practice directly.</p>
+
+          </div>
+
+          {cycleLoading ? (
+
+            <div className="rounded-2xl border border-slate-100 bg-white p-8 text-center text-sm text-slate-500">Loading cycle phases…</div>
+
+          ) : cycleError ? (
+
+            <div role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-800">{cycleError}</div>
+
+          ) : cyclePhases.length === 0 ? (
+
+            <div className="rounded-2xl border border-slate-100 bg-white p-8 text-center text-sm text-slate-500">No cycle phases are available yet.</div>
+
+          ) : (
+
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+
+              {cyclePhases.map((phase) => {
+
+                const ui = cycleUI[phase.slug] || { icon: "🌿", phase: "CYCLE PHASE" };
+
+                const recommendations = (phase.recommendations || [])
+
+                  .filter((recommendation) => recommendation.is_active !== false)
+
+                  .slice(0, 2);
+
+                return (
+
+                  <button
+
+                    key={phase.id ?? phase.slug}
+
+                    type="button"
+
+                    onClick={() => startCyclePractice(phase)}
+
+                    className="group flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-5 text-left transition hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
+
+                  >
+
+                    <span className="flex items-center justify-between">
+
+                      <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 text-2xl">{ui.icon}</span>
+
+                      <span className="text-[10px] font-semibold tracking-[0.12em] text-slate-400">{ui.phase}</span>
+
+                    </span>
+
+                    <span className="mt-4 block text-lg font-semibold capitalize text-slate-900">{phase.name || phase.slug}</span>
+
+                    <span className="mt-1 block text-xs font-medium text-emerald-800">{phase.energy_context || phase.intensity || "Move at your own pace"}</span>
+
+                    <span className="mt-3 block line-clamp-2 text-sm leading-5 text-slate-500">{phase.practice_style || phase.description || "Explore a practice for this phase."}</span>
+
+                    {recommendations.length > 0 && (
+
+                      <span className="mt-3 block text-xs leading-5 text-slate-500">
+
+                        {recommendations.map((item) => item.asana?.name || item.asana_name).filter(Boolean).join(" · ")}
+
+                      </span>
+
+                    )}
+
+                    <span className="mt-auto flex items-center justify-between border-t border-slate-100 pt-4 text-xs font-semibold text-emerald-800">
+
+                      Open practice <span className="transition group-hover:translate-x-1">↗</span>
+
+                    </span>
+
+                  </button>
+
+                );
+
+              })}
+
+            </div>
+
+          )}
+
+          <p className="mt-3 text-xs leading-5 text-slate-500">Cycle experiences vary. Choose the movement that feels comfortable for you.</p>
+
+        </div>
+
+      </section>
+
+      {/* Deep Dive */}
+
+      <section id="deep-dive" className="scroll-mt-28 px-4 py-6 sm:px-6 lg:px-8">
+
+        <div className="mx-auto max-w-7xl rounded-[2rem] border border-emerald-100 bg-white p-6 shadow-sm sm:p-8">
+
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+
+            <div>
+
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-800">03 · Focused practice</p>
+
+              <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">Go deeper into what you need.</h2>
+
+            </div>
+
+            <button
+
+              type="button"
+
+              onClick={() => navigate("/deep-dive")}
+
+              className="inline-flex min-h-10 items-center justify-center self-start rounded-full bg-emerald-800 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-900 sm:self-auto"
+
+            >
+
+              Explore Deep Dive ↗
+
+            </button>
+
+          </div>
+
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+
+            {deepDiveFocuses.map((focus) => (
+
+              <button
+
+                key={focus.slug}
+
+                type="button"
+
+                onClick={() => navigate(`/deep-dive?focus=${encodeURIComponent(focus.slug)}`)}
+
+                className="rounded-2xl border border-slate-200 p-4 text-left transition hover:border-emerald-300 hover:bg-emerald-50/50 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+
+              >
+
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-xl">{focus.icon}</span>
+
+                <span className="mt-3 block text-[10px] font-semibold uppercase tracking-[0.12em] text-emerald-800">{focus.category}</span>
+
+                <span className="mt-1 block font-semibold text-slate-900">{focus.title}</span>
+
+                <span className="mt-1 block text-xs leading-5 text-slate-500">{focus.description}</span>
+
+              </button>
+
+            ))}
+
+          </div>
+
+        </div>
+
+      </section>
+
+      {/* Daily practice */}
+
+      <section id="daily" className="scroll-mt-28 px-4 py-6 sm:px-6 lg:px-8">
+
+        <div className="mx-auto flex max-w-7xl flex-col gap-4 rounded-[2rem] bg-[#eaf3e5] p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8">
+
+          <div>
+
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-800">04 · Daily practice</p>
+
+            <h2 className="mt-2 text-2xl font-semibold text-slate-900">A little movement goes a long way.</h2>
+
+            <p className="mt-2 text-sm text-slate-600">Choose a duration and explore the asana library.</p>
+
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+
+            {[10, 20, 30].map((minutes) => (
+
+              <button
+
+                key={minutes}
+
+                type="button"
+
+                onClick={() => {
+
+                  setSearchInput("");
+
+                  setSearchTerm("");
+
+                  setSelectedCategory("All");
+
+                  scrollToSection("asanas");
+
+                }}
+
+                className="rounded-full border border-white bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:border-emerald-300 hover:text-emerald-900"
+
+                aria-label={`Explore asanas for a ${minutes} minute practice`}
+
+              >
+
+                {minutes} min
+
+              </button>
+
+            ))}
+
+            <button
+
+              type="button"
+
+              onClick={() => scrollToSection("asanas")}
+
+              className="rounded-full bg-emerald-800 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-900"
+
+            >
+
+              Browse asanas →
+
+            </button>
+
+          </div>
+
+        </div>
+
+      </section>
+
+      {/* Working Asana Encyclopedia */}
+
+      <section id="asanas" className="scroll-mt-28 px-4 py-6 sm:px-6 lg:px-8">
+
+        <div className="mx-auto max-w-7xl">
+
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+
+            <div>
+
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-800">05 · Explore & learn</p>
+
+              <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">Asana Encyclopedia</h2>
+
+              <p className="mt-2 max-w-xl text-sm leading-6 text-slate-500">Search poses by name, Sanskrit name, category, focus area, or benefit.</p>
+
+            </div>
+
+            <span className="text-sm text-slate-500">
+
+              {asanasLoading ? "Loading poses…" : `${filteredAsanas.length} ${filteredAsanas.length === 1 ? "pose" : "poses"}`}
+
+            </span>
+
+          </div>
+
+          <div className="mt-5 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+
+            <form
+
+              className="flex flex-col gap-2 sm:flex-row"
+
+              onSubmit={(event) => {
+
+                event.preventDefault();
+
+                setSearchTerm(searchInput);
+
+                setShowAllAsanas(true);
+
+              }}
+
+            >
+
+              <label className="flex min-h-12 flex-1 items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-100">
+
+                <span aria-hidden="true">⌕</span>
+
+                <input
+
+                  type="search"
+
+                  value={searchInput}
+
+                  onChange={(event) => {
+
+                    setSearchInput(event.target.value);
+
+                    setSearchTerm(event.target.value);
+
+                    setShowAllAsanas(false);
+
+                  }}
+
+                  placeholder="Search asanas, benefits, Sanskrit names…"
+
+                  className="w-full bg-transparent py-3 text-sm outline-none placeholder:text-slate-400"
+
+                  aria-label="Search asanas"
+
+                />
+
+                {searchInput && (
+
+                  <button
+
+                    type="button"
+
+                    onClick={() => {
+
+                      setSearchInput("");
+
+                      setSearchTerm("");
+
+                    }}
+
+                    className="text-xs font-medium text-slate-500 hover:text-emerald-800"
+
+                  >
+
+                    Clear
+
+                  </button>
+
+                )}
+
+              </label>
+
+              <button type="submit" className="min-h-12 rounded-xl bg-emerald-800 px-6 py-3 text-sm font-semibold text-white transition hover:bg-emerald-900">
+
+                Search poses
+
+              </button>
+
+            </form>
+
+            <div className="mt-4 flex gap-2 overflow-x-auto pb-1" aria-label="Filter asanas by category">
+
+              {categories.map((category) => (
 
                 <button
-                  onClick={() => navigate("/deep-dive")}
-                  className="mt-8 rounded-full bg-green-700 px-7 py-3 text-sm font-semibold text-white transition hover:bg-green-800 hover:shadow-lg"
+
+                  key={category}
+
+                  type="button"
+
+                  aria-pressed={selectedCategory === category}
+
+                  onClick={() => {
+
+                    setSelectedCategory(category);
+
+                    setShowAllAsanas(false);
+
+                  }}
+
+                  className={`shrink-0 rounded-full px-3.5 py-2 text-xs font-medium transition ${selectedCategory === category
+
+                    ? "bg-emerald-800 text-white"
+
+                    : "bg-slate-100 text-slate-600 hover:bg-emerald-50 hover:text-emerald-900"
+
+                    }`}
+
                 >
-                  Explore Deep Practice →
+
+                  {category}
+
+                </button>
+
+              ))}
+
+            </div>
+
+          </div>
+
+          <div className="mt-5">
+
+            {asanasLoading ? (
+
+              <div role="status" className="rounded-2xl border border-slate-100 bg-white p-10 text-center text-sm text-slate-500">Loading your asana encyclopedia…</div>
+
+            ) : asanaError ? (
+
+              <div role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-center">
+
+                <p className="text-sm text-amber-900">{asanaError}</p>
+
+                <button type="button" onClick={retryAsanas} className="mt-3 rounded-full bg-emerald-800 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-900">Try again</button>
+
+              </div>
+
+            ) : filteredAsanas.length === 0 ? (
+
+              <div className="rounded-2xl border border-slate-100 bg-white p-10 text-center">
+
+                <p className="text-lg font-semibold text-slate-800">No poses found</p>
+
+                <p className="mt-1 text-sm text-slate-500">Try a different search or select “All”.</p>
+
+                <button
+
+                  type="button"
+
+                  onClick={() => {
+
+                    setSearchInput("");
+
+                    setSearchTerm("");
+
+                    setSelectedCategory("All");
+
+                  }}
+
+                  className="mt-4 rounded-full bg-emerald-800 px-4 py-2 text-xs font-semibold text-white"
+
+                >
+
+                  Clear filters
+
                 </button>
 
               </div>
 
-              {/* RIGHT SIDE */}
+            ) : (
 
-              <div className="flex items-center bg-green-50 p-6 sm:p-8 lg:p-10">
+              <>
 
-                <div className="w-full rounded-3xl bg-white p-6 shadow-sm">
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
 
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-green-50 text-3xl">
-                    🧘
-                  </div>
+                  {visibleAsanas.map((asana) => (
 
-                  <p className="mt-6 text-xs font-semibold uppercase tracking-wider text-green-700">
-                    Deep Dive
-                  </p>
+                    <article key={asana.id} className="group overflow-hidden rounded-2xl border border-slate-200 bg-white transition hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-md">
 
-                  <h3 className="mt-2 text-2xl font-bold">
-                    More focus. More intention.
-                  </h3>
+                      <Link to={`/asanas/${asana.id}`} className="block focus:outline-none focus:ring-2 focus:ring-inset focus:ring-emerald-500">
 
-                  <p className="mt-3 text-sm leading-6 text-gray-600">
-                    Take a little more time for yourself with guided
-                    yoga sessions designed around different wellness
-                    goals.
-                  </p>
+                        <div className="relative h-40 overflow-hidden bg-[#edf5e9]">
 
-                  <div className="mt-6 space-y-3">
+                          {getAsanaImage(asana) && (
+                            <img
+                              src={getAsanaImage(asana)}
 
-                    <div className="flex items-center gap-3 text-sm text-gray-600">
-                      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-green-50 text-green-700">
-                        ✓
-                      </span>
-                      Focused wellness sessions
-                    </div>
+                              alt={asana.name ? `${asana.name} yoga pose` : "Yoga pose"}
 
-                    <div className="flex items-center gap-3 text-sm text-gray-600">
-                      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-green-50 text-green-700">
-                        ✓
-                      </span>
-                      Move at your own pace
-                    </div>
+                              loading="lazy"
 
-                    <div className="flex items-center gap-3 text-sm text-gray-600">
-                      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-green-50 text-green-700">
-                        ✓
-                      </span>
-                      Practice with intention
-                    </div>
+                              className="h-full w-full object-contain object-center"
 
-                  </div>
+                              onError={(event) => {
+
+                                event.currentTarget.style.display = "none";
+
+                                event.currentTarget.nextElementSibling?.classList.remove("hidden");
+
+                              }}
+
+                            />
+
+                          )}
+
+                          <div
+
+                            className={`h-full w-full items-center justify-center text-5xl ${getAsanaImage(asana) ? "hidden" : "flex"
+
+                              }`}
+
+                            aria-hidden="true"
+
+                          >
+
+                            🧘
+
+                          </div>
+
+                          <span className="absolute left-3 top-3 rounded-full bg-white/95 px-2.5 py-1 text-[10px] font-semibold text-emerald-900">
+
+                            {asana.difficulty || "All levels"}
+
+                          </span>
+
+                        </div>
+
+                        <div className="p-4">
+
+                          <p className="text-xs font-medium text-emerald-800">
+
+                            {asana.sanskrit_name || "Yoga practice"}
+
+                          </p>
+
+                          <h3 className="mt-1 text-lg font-semibold text-slate-900">{asana.name || "Untitled asana"}</h3>
+
+                          <p className="mt-2 line-clamp-2 text-sm leading-5 text-slate-500">{asana.short_description || asana.description || "Open this pose to explore its guidance and benefits."}</p>
+
+                          <div className="mt-4 flex items-center justify-between gap-2 border-t border-slate-100 pt-3 text-xs text-slate-500">
+
+                            <span>{asana.category || asana.focus_area || "Asana"}</span>
+
+                            <span className="font-semibold text-emerald-800">View details ↗</span>
+
+                          </div>
+
+                        </div>
+
+                      </Link>
+
+                    </article>
+
+                  ))}
 
                 </div>
 
-              </div>
+                {filteredAsanas.length > 6 && (
 
-            </div>
+                  <div className="mt-5 text-center">
+
+                    <button
+
+                      type="button"
+
+                      onClick={() => setShowAllAsanas((value) => !value)}
+
+                      className="rounded-full border border-emerald-800 px-5 py-2.5 text-sm font-semibold text-emerald-900 transition hover:bg-emerald-50"
+
+                    >
+
+                      {showAllAsanas ? "Show fewer poses" : `View all ${filteredAsanas.length} poses`}
+
+                    </button>
+
+                  </div>
+
+                )}
+
+              </>
+
+            )}
 
           </div>
 
         </div>
+
       </section>
 
-      {/* =====================================================
-          DAILY PRACTICE
-      ====================================================== */}
+      {/* Programs section preserved: content and actions are intentionally not redesigned. */}
 
-      < section
-        id="daily"
-        className="scroll-mt-28 px-4 py-8 sm:px-6 lg:px-10"
-      >
-        <div className="mx-auto max-w-7xl">
-          <div className="rounded-3xl bg-green-50 p-6 sm:p-8">
-            <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+      <section id="programs" className="scroll-mt-28 px-4 py-7 sm:px-6 lg:px-8">
 
-              <div>
-                <span className="text-xs font-semibold uppercase tracking-wider text-green-700">
-                  Everyday Wellness
-                </span>
-
-                <h2 className="mt-1 text-2xl font-bold sm:text-3xl">
-                  Build your daily practice.
-                </h2>
-
-                <p className="mt-2 max-w-xl text-sm leading-6 text-gray-600">
-                  Short, approachable sessions that fit
-                  naturally into your routine.
-                </p>
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                {["10 min", "20 min", "30 min"].map(
-                  (duration) => (
-                    <button
-                      key={duration}
-                      className="rounded-full bg-white px-4 py-2 text-sm font-medium text-gray-600 shadow-sm transition hover:bg-green-700 hover:text-white"
-                    >
-                      {duration}
-                    </button>
-                  )
-                )}
-
-                <button className="rounded-full bg-green-700 px-5 py-2 text-sm font-semibold text-white transition hover:bg-green-800">
-                  Start Practice →
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section >
-
-      {/* =====================================================
-          ASANA ENCYCLOPEDIA
-      ====================================================== */}
-
-      < section
-        id="asanas"
-        className="scroll-mt-28 px-4 py-8 sm:px-6 lg:px-10"
-      >
         <div className="mx-auto max-w-7xl">
 
-          <div className="mb-6">
-            <span className="text-xs font-semibold uppercase tracking-wider text-green-700">
-              Explore & Learn
-            </span>
+          <div className="mb-5">
 
-            <h2 className="mt-1 text-2xl font-bold sm:text-3xl">
-              Asana Encyclopedia
-            </h2>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-800">Guided practice</p>
 
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600">
-              Explore yoga asanas with guidance, benefits,
-              difficulty levels, and practice recommendations.
-            </p>
-          </div>
+            <h2 className="mt-2 text-2xl font-semibold text-slate-900 sm:text-3xl">Popular Yoga Programs</h2>
 
-          <div className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-gray-100 sm:p-6">
+            <p className="mt-2 text-sm text-slate-500">Structured practices for different goals and schedules.</p>
 
-            <div className="flex flex-col gap-3 md:flex-row">
-              <div className="flex flex-1 items-center rounded-xl border border-gray-200 bg-gray-50 px-4">
-                <span className="mr-3 text-gray-400">
-                  🔍
-                </span>
-
-                <input
-                  type="text"
-                  placeholder="Search asanas, benefits, poses..."
-                  className="w-full bg-transparent py-3 text-sm outline-none"
-                />
-              </div>
-
-              <button className="rounded-xl bg-green-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-green-800">
-                Search
-              </button>
-            </div>
-
-            <div className="mt-4 flex flex-wrap gap-2">
-              {[
-                "Standing",
-                "Seated",
-                "Backbends",
-                "Forward Bends",
-                "Twists",
-                "Inversions",
-                "Balance",
-                "Hip Openers",
-                "Relaxation",
-              ].map((category) => (
-                <button
-                  key={category}
-                  className="rounded-full bg-gray-50 px-3.5 py-2 text-xs font-medium text-gray-600 transition hover:bg-green-700 hover:text-white"
-                >
-                  {category}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="mt-7 flex items-end justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-green-700">
-                Featured Practice
-              </p>
-
-              <h3 className="mt-1 text-xl font-bold">
-                Start with approachable poses.
-              </h3>
-            </div>
-
-            <button className="hidden text-sm font-semibold text-green-700 sm:block">
-              View All Asanas →
-            </button>
-          </div>
-
-          <div className="mt-4">
-
-            {loadingAsanas ? (
-              <div className="rounded-2xl bg-white p-8 text-center shadow-sm ring-1 ring-gray-100">
-                <div className="text-3xl">🧘</div>
-
-                <p className="mt-3 text-sm text-gray-500">
-                  Loading asanas...
-                </p>
-              </div>
-            ) : asanaError ? (
-              <div className="rounded-2xl border border-red-100 bg-red-50 p-6 text-center">
-                <p className="text-sm text-red-600">
-                  {asanaError}
-                </p>
-
-                <button
-                  onClick={() =>
-                    window.location.reload()
-                  }
-                  className="mt-3 rounded-full bg-red-600 px-4 py-2 text-xs font-semibold text-white"
-                >
-                  Try Again
-                </button>
-              </div>
-            ) : asanas.length === 0 ? (
-              <div className="rounded-2xl bg-white p-8 text-center shadow-sm ring-1 ring-gray-100">
-                <p className="text-sm text-gray-500">
-                  No asanas available yet.
-                </p>
-              </div>
-            ) : (
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {asanas.slice(0, 3).map(
-                  (asana) => (
-                    <div
-                      key={asana.id}
-                      className="group overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-100 transition hover:-translate-y-1 hover:shadow-lg"
-                    >
-                      <div className="relative h-44 overflow-hidden bg-green-50">
-                        {asana.image_url ? (
-                          <img
-                            src={asana.image_url}
-                            alt={`Person practicing ${asana.name}`}
-                            className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                          />
-                        ) : (
-                          <div className="flex h-full items-center justify-center">
-                            <span className="text-5xl">
-                              🧘
-                            </span>
-                          </div>
-                        )}
-
-                        <span className="absolute left-3 top-3 rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-semibold text-green-700 backdrop-blur-sm">
-                          {asana.difficulty}
-                        </span>
-                      </div>
-
-                      <div className="p-4">
-                        <p className="text-xs font-semibold text-green-700">
-                          {asana.sanskrit_name}
-                        </p>
-
-                        <h4 className="mt-1 font-bold">
-                          {asana.name}
-                        </h4>
-
-                        <p className="mt-2 line-clamp-2 text-xs leading-5 text-gray-500">
-                          {
-                            asana.short_description
-                          }
-                        </p>
-
-                        <div className="mt-4 flex items-center justify-between text-xs text-gray-500">
-                          <span>
-                            {asana.category}
-                          </span>
-
-                          <Link
-                            to={`/asanas/${asana.id}`}
-                            className="font-semibold text-green-700 hover:text-green-800"
-                          >
-                            Details →
-                          </Link>
-                        </div>
-                      </div>
-                    </div>
-                  )
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      </section >
-
-      {/* =====================================================
-          PROGRAMS
-      ====================================================== */}
-
-      < section
-        id="programs"
-        className="scroll-mt-28 px-4 py-8 sm:px-6 lg:px-10"
-      >
-        <div className="mx-auto max-w-7xl">
-
-          <div className="mb-6">
-            <span className="text-xs font-semibold uppercase tracking-wider text-green-700">
-              Guided Practice
-            </span>
-
-            <h2 className="mt-1 text-2xl font-bold sm:text-3xl">
-              Popular Yoga Programs
-            </h2>
-
-            <p className="mt-2 text-sm text-gray-600">
-              Structured practices for different goals,
-              schedules, and experience levels.
-            </p>
           </div>
 
           <div className="grid gap-4 md:grid-cols-3">
+
+
             {programs.map((program) => (
-              <div
+              <article
                 key={program.title}
-                className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-gray-100 transition hover:-translate-y-1 hover:shadow-lg"
+                className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm"
               >
-                <div className="relative h-40 overflow-hidden">
+                <div className="relative h-40 overflow-hidden bg-emerald-50">
                   <img
                     src={program.image}
                     alt={program.title}
-                    className="h-full w-full object-cover transition duration-500 hover:scale-105"
+                    loading="lazy"
+                    className="h-full w-full object-cover object-center"
                   />
+                  
                 </div>
 
                 <div className="p-5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-green-700">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-emerald-800">
                       {program.type}
                     </span>
 
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs text-slate-500">
                       {program.duration}
                     </span>
                   </div>
 
-                  <h3 className="mt-2 text-lg font-bold">
+                  <h3 className="mt-2 text-lg font-semibold text-slate-900">
                     {program.title}
                   </h3>
 
-                  <p className="mt-1 text-xs leading-5 text-gray-500">
+                  <p className="mt-1 text-sm leading-5 text-slate-500">
                     {program.description}
                   </p>
 
-                  <button className="mt-5 w-full rounded-full bg-green-700 px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-green-800">
+                  <button
+                    type="button"
+                    className="mt-5 w-full rounded-full bg-emerald-800 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-900"
+                  >
                     Start Program
                   </button>
                 </div>
-              </div>
+              </article>
             ))}
+
           </div>
+
         </div>
-      </section >
 
-      {/* =====================================================
-          MATERNITY
-      ====================================================== */}
+      </section>
 
-      < section className="px-4 py-8 sm:px-6 lg:px-10" >
-        <div className="mx-auto max-w-7xl rounded-3xl bg-stone-100 p-6 sm:p-8">
+      {/* Short safety note instead of several repetitive content blocks */}
 
-          <div className="flex flex-col gap-7 lg:flex-row lg:items-center">
+      <section className="px-4 py-6 sm:px-6 lg:px-8">
 
-            <div className="lg:w-2/5">
-              <span className="text-xs font-semibold uppercase tracking-wider text-green-700">
-                Gentle Wellness
-              </span>
+        <div className="mx-auto flex max-w-7xl flex-col gap-3 rounded-2xl border border-emerald-100 bg-white p-5 sm:flex-row sm:items-start">
 
-              <h2 className="mt-2 text-2xl font-bold sm:text-3xl">
-                A safer yoga journey through pregnancy.
-              </h2>
+          <span className="text-2xl" aria-hidden="true">🛡️</span>
 
-              <p className="mt-3 text-sm leading-7 text-gray-600">
-                Gentle, trimester-aware movement designed
-                around changing energy, comfort, and mobility.
-              </p>
-            </div>
+          <div>
 
-            <div className="grid flex-1 gap-3 sm:grid-cols-3">
-              {[
-                {
-                  icon: "🌱",
-                  title: "First Trimester",
-                  text: "Grounding & gentle movement",
-                },
-                {
-                  icon: "🌿",
-                  title: "Second Trimester",
-                  text: "Stability & supported movement",
-                },
-                {
-                  icon: "🌸",
-                  title: "Third Trimester",
-                  text: "Balance, comfort & support",
-                },
-              ].map((item) => (
-                <div
-                  key={item.title}
-                  className="rounded-2xl bg-white p-5 shadow-sm"
-                >
-                  <span className="text-2xl">
-                    {item.icon}
-                  </span>
+            <h2 className="font-semibold text-slate-900">Practice with care</h2>
 
-                  <h3 className="mt-3 text-sm font-bold">
-                    {item.title}
-                  </h3>
+            <p className="mt-1 text-sm leading-6 text-slate-500">
 
-                  <p className="mt-1 text-xs leading-5 text-green-700">
-                    {item.text}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
+              Move within a comfortable range, modify or skip any pose that does not feel right, and seek qualified guidance when a practice may not be appropriate for you.
 
-          <div className="mt-4 rounded-2xl bg-white p-4">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="text-sm font-bold">
-                  Beyond Pregnancy
-                </p>
-
-                <p className="mt-1 text-xs text-gray-500">
-                  Postpartum recovery and nursing posture
-                  relief.
-                </p>
-              </div>
-
-              <span className="text-xs leading-5 text-gray-400 sm:max-w-md sm:text-right">
-                Practice comfortably and seek appropriate
-                professional guidance when needed.
-              </span>
-            </div>
-          </div>
-        </div>
-      </section >
-
-      {/* =====================================================
-          SAFETY
-      ====================================================== */}
-
-      < section className="px-4 py-8 sm:px-6 lg:px-10" >
-        <div className="mx-auto max-w-7xl">
-
-          <div className="mb-6">
-            <span className="text-xs font-semibold uppercase tracking-wider text-green-700">
-              Practice With Confidence
-            </span>
-
-            <h2 className="mt-1 text-2xl font-bold sm:text-3xl">
-              Safety & Smart Practice
-            </h2>
-
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600">
-              Build a practice that respects your comfort,
-              your choices, and how your body feels today.
-            </p>
-          </div>
-
-          <div className="grid gap-3 md:grid-cols-3">
-            {[
-              {
-                icon: "🛡️",
-                title: "Safety Check-In",
-                text: "Share relevant conditions before starting a practice.",
-              },
-              {
-                icon: "🔄",
-                title: "Modify or Skip",
-                text: "Choose an easier variation or skip a movement.",
-              },
-              {
-                icon: "🎧",
-                title: "Audio Guidance",
-                text: "Follow simple alignment and movement cues.",
-              },
-            ].map((item) => (
-              <div
-                key={item.title}
-                className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-100"
-              >
-                <span className="text-2xl">
-                  {item.icon}
-                </span>
-
-                <h3 className="mt-3 font-bold">
-                  {item.title}
-                </h3>
-
-                <p className="mt-1 text-xs leading-5 text-gray-500">
-                  {item.text}
-                </p>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-4 rounded-2xl border border-green-100 bg-green-50 px-4 py-3.5">
-            <p className="text-xs leading-5 text-gray-600">
-              <span className="font-semibold text-gray-800">
-                Mindful reminder:
-              </span>{" "}
-              Practice within your comfort level. If you're
-              unsure whether a practice is appropriate for
-              you, consider seeking guidance from a qualified
-              professional.
-            </p>
-          </div>
-        </div>
-      </section >
-
-      {/* =====================================================
-          WHY FLOWSTATE
-      ====================================================== */}
-
-      < section className="px-4 py-8 sm:px-6 lg:px-10" >
-        <div className="mx-auto max-w-7xl rounded-3xl bg-green-50 p-6 sm:p-8">
-
-          <div className="mx-auto max-w-2xl text-center">
-            <span className="inline-flex rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-green-700 shadow-sm">
-              The FlowState Difference
-            </span>
-
-            <h2 className="mt-4 text-2xl font-bold sm:text-3xl">
-              More than a yoga library.
-            </h2>
-
-            <p className="mt-2 text-sm leading-6 text-gray-600">
-              FlowState helps you choose a practice based on
-              how you feel, what your body needs, and how much
-              time you have.
-            </p>
-          </div>
-
-          <div className="mt-7 grid gap-3 md:grid-cols-2">
-
-            <div className="rounded-2xl bg-white p-5">
-              <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">
-                Traditional approach
-              </p>
-
-              <h3 className="mt-1 text-lg font-bold">
-                Yoga Library
-              </h3>
-
-              <div className="mt-4 space-y-2 text-sm text-gray-600">
-                <p>01 · Browse practices</p>
-                <p>02 · Choose what you need</p>
-                <p>03 · Start</p>
-              </div>
-            </div>
-
-            <div className="rounded-2xl bg-green-700 p-5 text-white">
-              <p className="text-xs font-semibold uppercase tracking-wider text-green-100">
-                FlowState approach
-              </p>
-
-              <h3 className="mt-1 text-lg font-bold">
-                Yoga With Context
-              </h3>
-
-              <div className="mt-4 space-y-2 text-sm text-green-50">
-                <p>01 · How are you feeling?</p>
-                <p>02 · Choose your need</p>
-                <p>03 · Get focused practice</p>
-                <p>04 · Spend less time deciding</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {[
-              ["🧠", "Mental-first", "Begin with how you feel."],
-              [
-                "💚",
-                "Physical + Mental",
-                "Connect movement with well-being.",
-              ],
-              [
-                "⏱️",
-                "Flexible Duration",
-                "Practice within your available time.",
-              ],
-              [
-                "✨",
-                "Personalized",
-                "Recommendations can adapt to your needs.",
-              ],
-              [
-                "🌙",
-                "Cycle-Aware",
-                "Adapt practice to changing energy.",
-              ],
-              [
-                "🛡️",
-                "Safety-First",
-                "Modify, skip, and practice comfortably.",
-              ],
-            ].map(([icon, title, text]) => (
-              <div
-                key={title}
-                className="rounded-2xl bg-white p-4 shadow-sm"
-              >
-                <span className="text-lg">{icon}</span>
-
-                <h3 className="mt-2 text-sm font-bold">
-                  {title}
-                </h3>
-
-                <p className="mt-1 text-xs leading-5 text-gray-500">
-                  {text}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section >
-
-      {/* =====================================================
-          FINAL CTA
-      ====================================================== */}
-
-      < section className="px-4 py-8 sm:px-6 lg:px-10" >
-        <div className="mx-auto max-w-7xl rounded-3xl bg-green-700 px-6 py-10 text-center text-white shadow-lg sm:px-8">
-
-          <div className="mx-auto max-w-2xl">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 text-2xl">
-              🌿
-            </div>
-
-            <h2 className="mt-5 text-3xl font-bold sm:text-4xl">
-              Your practice starts with one breath.
-            </h2>
-
-            <p className="mt-3 text-sm leading-6 text-green-50">
-              Take a few minutes today to move, breathe,
-              and reconnect.
             </p>
 
-            <button
-              onClick={() =>
-                scrollToSection("sos")
-              }
-              className="mt-6 rounded-full bg-white px-7 py-3 text-sm font-semibold text-green-700 shadow-md transition hover:bg-green-50"
-            >
-              Start Your Yoga Journey
-            </button>
           </div>
+
         </div>
-      </section >
 
-      {/* =====================================================
-          FOOTER
-      ====================================================== */}
+      </section>
 
-      < footer className="mt-4 bg-gray-900 text-gray-300" >
-        <div className="mx-auto max-w-7xl px-6 py-10 sm:px-8 lg:px-10">
+      <Footer />
 
-          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+    </main>
 
-            <div className="lg:col-span-2">
-              <div className="flex items-center gap-2">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-green-700 text-lg">
-                  🌿
-                </div>
-
-                <span className="text-xl font-bold text-white">
-                  FlowState
-                </span>
-              </div>
-
-              <p className="mt-4 max-w-md text-sm leading-6 text-gray-400">
-                A wellness platform designed to help you
-                connect mental well-being and physical
-                recovery through yoga.
-              </p>
-
-              <p className="mt-4 text-sm font-medium text-green-400">
-                Move better. Feel better. Live in balance.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="text-sm font-semibold text-white">
-                Yoga
-              </h3>
-
-              <div className="mt-3 space-y-2 text-sm text-gray-400">
-                {navItems.slice(0, 4).map(
-                  (item) => (
-                    <button
-                      key={item.id}
-                      onClick={() =>
-                        scrollToSection(item.id)
-                      }
-                      className="block transition hover:text-green-400"
-                    >
-                      {item.label}
-                    </button>
-                  )
-                )}
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-sm font-semibold text-white">
-                FlowState
-              </h3>
-
-              <div className="mt-3 space-y-2 text-sm text-gray-400">
-                <button className="block transition hover:text-green-400">
-                  Dashboard
-                </button>
-
-                <button className="block transition hover:text-green-400">
-                  About
-                </button>
-
-                <button className="block transition hover:text-green-400">
-                  Contact
-                </button>
-
-                <button className="block transition hover:text-green-400">
-                  Privacy
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-8 flex flex-col gap-3 border-t border-gray-800 pt-6 text-xs text-gray-500 sm:flex-row sm:items-center sm:justify-between">
-            <p>
-              © 2026 FlowState. All rights reserved.
-            </p>
-
-            <p>
-              Practice at your own pace. Listen to your body.
-            </p>
-          </div>
-        </div>
-      </footer >
-    </div >
   );
+
 }
 
 export default Yoga;
