@@ -6,7 +6,7 @@ import anxiousMusic from "../../audio/Anxious.mp3";
 import lowEnergyMusic from "../../audio/Low Energy.mp3";
 import focusMusic from "../../audio/Need Focus.mp3";
 import goodMoodMusic from "../../audio/Feeling Good.mp3";
-import sleepMusic from "../../audio/Better Sleep.wav";
+import sleepMusic from "../../audio/Better Sleep.mp3";
 import {
   FaArrowRight,
   FaArrowRotateLeft,
