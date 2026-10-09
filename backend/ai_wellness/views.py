@@ -12,7 +12,7 @@ from rest_framework.permissions import IsAuthenticated
 from groq import Groq
 
 from meditation.models import MeditationSession
-from yoga.models import YogaSession
+from yoga.models import Asana, YogaSession
 from users.models import DailyWellness
 import logging
 
@@ -55,31 +55,51 @@ ALLOWED_INTERNAL_ROUTES = {
 # SAFE ACTION BUILDER
 # ---------------------------------------------------------
 
+
 def build_action(ai_data):
     """
-    Validate the action returned by GROQ.
-
-    GROQ should decide the user's intent,
-    but Django controls which routes and external
-    websites are actually allowed.
+    Validate AI-generated actions.
+    Django controls allowed routes, database asanas,
+    and trusted external resources.
     """
+    from django.core.exceptions import ValidationError
+    from django.core.validators import URLValidator
 
     intent = ai_data.get("intent", "practice")
-    action_data = ai_data.get("action", {})
+    action_data = ai_data.get("action") or {}
+
+    if not isinstance(action_data, dict):
+        return None
 
     action_type = action_data.get("type")
 
-    # -----------------------------------------------------
-    # INTERNAL ACTION
-    # -----------------------------------------------------
-
+    # INTERNAL ACTIONS
     if action_type == "internal":
-
         route = action_data.get("route", "")
 
-        # Exact allowed route
-        if route in ALLOWED_INTERNAL_ROUTES:
+        # Verify actual active asana records.
+        if isinstance(route, str) and route.startswith("/asanas/"):
+            asana_id = route.removeprefix("/asanas/").strip("/")
 
+            if not asana_id.isdigit():
+                return None
+
+            asana = Asana.objects.filter(
+                id=int(asana_id),
+                is_active=True,
+            ).first()
+
+            if not asana:
+                return None
+
+            return {
+                "type": "internal",
+                "label": asana.name,
+                "route": f"/asanas/{asana.id}",
+            }
+
+        # Preserve existing allowed routes.
+        if route in ALLOWED_INTERNAL_ROUTES:
             return {
                 "type": "internal",
                 "label": action_data.get(
@@ -89,18 +109,17 @@ def build_action(ai_data):
                 "route": route,
             }
 
-        # Knowledge Hub article routes
-        if route.startswith("/knowledge-hub/article/"):
-
+        # Preserve Knowledge Hub article routes.
+        if isinstance(route, str) and route.startswith(
+            "/knowledge-hub/article/"
+        ):
             slug = route.replace(
                 "/knowledge-hub/article/",
                 "",
                 1,
             ).strip("/")
 
-            # Prevent empty or suspicious routes
             if slug and "/" not in slug:
-
                 return {
                     "type": "internal",
                     "label": action_data.get(
@@ -110,21 +129,14 @@ def build_action(ai_data):
                     "route": f"/knowledge-hub/article/{slug}",
                 }
 
-        # Invalid route
         return None
 
-    # -----------------------------------------------------
-    # EXTERNAL ACTION
-    # -----------------------------------------------------
-
+    # EXTERNAL ACTIONS
     if action_type == "external":
-
         source_key = action_data.get("source_key")
-
         source = TRUSTED_SOURCES.get(source_key)
 
         if source:
-
             return {
                 "type": "external",
                 "label": source["label"],
@@ -133,11 +145,93 @@ def build_action(ai_data):
 
         return None
 
-    # -----------------------------------------------------
-    # NO ACTION
-    # -----------------------------------------------------
-
     return None
+
+
+def get_relevant_asanas(message, mood="", limit=5):
+    """
+    Find active yoga asanas relevant to the user's message and mood.
+    Returns actual database records, not AI-invented poses.
+    """
+    message = (message or "").strip().lower()
+    mood = (mood or "").strip().lower()
+
+    keywords = set((message + " " + mood).split())
+
+    # Expand common user expressions into searchable wellness terms.
+    keyword_groups = {
+        "tired": ["fatigue", "low energy", "energy"],
+        "exhausted": ["fatigue", "low energy", "energy"],
+        "anxious": ["anxiety", "stress", "calm", "relaxation"],
+        "anxiety": ["anxious", "stress", "calm", "relaxation"],
+        "stress": ["anxiety", "calm", "relaxation"],
+        "sleep": ["insomnia", "relaxation", "calm"],
+        "insomnia": ["sleep", "relaxation", "calm"],
+        "back": ["back pain", "spine", "lower back"],
+        "pain": ["discomfort", "recovery", "relief"],
+        "cramping": ["menstrual", "period", "pelvic"],
+        "sad": ["low mood", "calm", "relaxation"],
+        "focus": ["concentration", "mindfulness"],
+    }
+
+    search_terms = set(keywords)
+
+    for word in keywords:
+        search_terms.update(keyword_groups.get(word, []))
+
+    # Search only active asanas using fields that exist in your model.
+    queryset = Asana.objects.filter(is_active=True)
+
+    from django.db.models import Q
+
+    query = Q()
+
+    searchable_fields = [
+        "name",
+        "sanskrit_name",
+        "short_description",
+        "category",
+        "benefits",
+        "instructions",
+        "focus_area",
+        "energy_level",
+        "contraindications",
+        "modifications",
+    ]
+
+    for term in search_terms:
+        if len(term) < 3:
+            continue
+
+        for field in searchable_fields:
+            query |= Q(**{f"{field}__icontains": term})
+
+    if not query:
+        return []
+
+    results = queryset.filter(query).distinct()[:limit]
+
+    return [
+        {
+            "id": asana.id,
+            "name": asana.name,
+            "sanskrit_name": asana.sanskrit_name,
+            "description": asana.short_description,
+            "category": asana.category,
+            "difficulty": asana.difficulty,
+            "benefits": asana.benefits,
+            "instructions": asana.instructions,
+            "duration_seconds": asana.duration_seconds,
+            "focus_area": asana.focus_area,
+            "energy_level": asana.energy_level,
+            "contraindications": asana.contraindications,
+            "modifications": asana.modifications,
+            "precautions": asana.precautions,
+            "url": f"/asanas/{asana.id}",
+        }
+        for asana in results
+    ]
+
 
 # ---------------------------------------------------------
 # AI WELLNESS CHAT
@@ -187,6 +281,21 @@ def ai_wellness_chat(request):
                 ),
             })
 
+
+        # Fetch relevant yoga poses from the actual FlowState database.
+        relevant_asanas = get_relevant_asanas(
+            message=message,
+            mood=mood,
+            limit=5,
+        )
+
+        asanas_context = json.dumps(
+            relevant_asanas,
+            indent=2,
+            ensure_ascii=False,
+        )
+
+
         prompt = f"""
 You are FlowState AI, a supportive wellness assistant.
 
@@ -201,6 +310,21 @@ SELECTED MOOD:
 
 RECENT MEDITATION HISTORY:
 {json.dumps(recent_history, indent=2)}
+
+
+AVAILABLE YOGA ASANAS FROM THE FLOWSTATE DATABASE:
+{asanas_context}
+
+ASANA RECOMMENDATION RULES:
+- Recommend only poses included in the database data above.
+- Never invent an asana name, database ID, benefit, instruction, or safety detail.
+- Use the real database ID when linking to an asana.
+- Internal asana links must use the format /asanas/REAL_DATABASE_ID.
+- Consider contraindications and precautions before recommending a pose.
+- If no relevant asanas are available, do not invent yoga poses.
+- If no suitable internal content exists, you may suggest a trustworthy external resource.
+- If the database contains no suitable poses, provide safe general wellness guidance instead.
+
 
 FLOWSTATE FEATURES:
 - /yoga — yoga practices
@@ -219,29 +343,34 @@ GUIDELINES:
 - Keep the reply concise and useful.
 - Use an external source only when genuinely helpful.
 
+
 Return ONLY valid JSON with this structure:
-{{
-    "reply": "Your helpful response to the user.",
+{
+    "reply": "A friendly conversational response.",
     "intent": "practice",
-    "recommendation": {{
-        "title": "Optional recommendation title",
-        "description": "Optional short recommendation"
-    }},
-    "action": {{
+    "recommendation": {
+        "title": "A title based on the available database content",
+        "description": "A short explanation using database information",
+        "asana_ids": [12]
+    },
+    "action": {
         "type": "internal",
-        "label": "Explore Yoga",
-        "route": "/yoga"
-    }}
-}}
+        "label": "View recommended pose",
+        "route": "/asanas/12"
+    }
+}
 
 Rules:
-- intent should briefly describe the user's intent.
-- recommendation may be null if no recommendation is needed.
-- action may be null if no action is needed.
-- Internal routes must be selected only from the listed FlowState routes.
-- External actions, if necessary, must use a trusted source key:
-  nccih, pubmed, or who.
-- Do not return Markdown or code fences.
+- recommendation must be null if no suitable database asana exists.
+- asana_ids must contain only IDs from the supplied database data.
+- Include at most three recommended asana IDs.
+- Never invent asana IDs, pose names, benefits, or instructions.
+- Only recommend poses suitable for the user's stated needs.
+- If no suitable database pose exists, offer general wellness guidance.
+- Use an asana-specific action only when its ID is in asana_ids.
+- Otherwise use a relevant existing FlowState route or null.
+- External actions must use an allowed trusted source key.
+- Return JSON only, without Markdown fences.
 """
 
         client = Groq(api_key=api_key)
@@ -279,47 +408,71 @@ Rules:
             )
         )
 
-        # Validate actions on the Django backend.
+       
+        # Validate the AI recommendation against real database records.
+        raw_recommendation = ai_data.get("recommendation")
+        recommendation = None
         action = build_action(ai_data)
+
+        if isinstance(raw_recommendation, dict) and relevant_asanas:
+            allowed_asanas = {
+                item["id"]: item for item in relevant_asanas
+            }
+
+            requested_ids = raw_recommendation.get("asana_ids", [])
+
+            if isinstance(requested_ids, list):
+                verified_ids = []
+
+                for asana_id in requested_ids[:3]:
+                    if (
+                        isinstance(asana_id, int)
+                        and not isinstance(asana_id, bool)
+                        and asana_id in allowed_asanas
+                    ):
+                        if asana_id not in verified_ids:
+                            verified_ids.append(asana_id)
+
+                if verified_ids:
+                    first_asana = allowed_asanas[verified_ids[0]]
+
+                    recommendation = {
+                        "title": first_asana["name"],
+                        "description": first_asana["description"],
+                        "type": first_asana["category"],
+                        "duration": max(
+                            1,
+                            round(first_asana["duration_seconds"] / 60),
+                        ) if first_asana["duration_seconds"] else None,
+                        "asana_ids": verified_ids,
+                        "asanas": [
+                            allowed_asanas[asana_id]
+                            for asana_id in verified_ids
+                        ],
+                    }
+
+                    # Build the action using a verified database ID.
+                    action = {
+                        "type": "internal",
+                        "label": first_asana["name"],
+                        "route": first_asana["url"],
+                    }
 
         return Response(
             {
                 "reply": reply,
                 "intent": ai_data.get("intent", "practice"),
-                "recommendation": ai_data.get("recommendation"),
+                "recommendation": recommendation,
                 "action": action,
             },
             status=status.HTTP_200_OK,
         )
-
-    except json.JSONDecodeError:
-        print("❌ GROQ returned invalid chat JSON")
-
-        return Response(
-            {
-                "error": (
-                    "FlowState AI returned an invalid response. "
-                    "Please try again."
-                )
-            },
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        )
-
     except Exception:
-        logger.exception("AI WELLNESS CHAT FAILED")
-
+        logger.exception("AI wellness chat request failed")
         return Response(
-            {
-                "error": (
-                    "FlowState AI is temporarily unavailable. "
-                    "Please try again."
-                )
-            },
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            {"error": "Unable to process your wellness request right now."},
+            status=status.HTTP_502_BAD_GATEWAY,
         )
-
-
-
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
