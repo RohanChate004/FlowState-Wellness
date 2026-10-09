@@ -2,15 +2,18 @@ import json
 from datetime import datetime
 
 from django.conf import settings
+from django.utils import timezone
 
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 
-from google import genai
+from groq import Groq
 
 from meditation.models import MeditationSession
+from yoga.models import YogaSession
+from users.models import DailyWellness
 
 
 # ---------------------------------------------------------
@@ -51,9 +54,9 @@ ALLOWED_INTERNAL_ROUTES = {
 
 def build_action(ai_data):
     """
-    Validate the action returned by Gemini.
+    Validate the action returned by GROQ.
 
-    Gemini should decide the user's intent,
+    GROQ should decide the user's intent,
     but Django controls which routes and external
     websites are actually allowed.
     """
@@ -133,7 +136,6 @@ def build_action(ai_data):
 
     return None
 
-
 # ---------------------------------------------------------
 # AI WELLNESS CHAT
 # ---------------------------------------------------------
@@ -142,628 +144,185 @@ def build_action(ai_data):
 @permission_classes([IsAuthenticated])
 def ai_wellness_chat(request):
 
-    # ---------------------------------------------------------
-    # 1. GET USER INPUT
-    # ---------------------------------------------------------
-
-    message = request.data.get("message", "").strip()
-    mood = request.data.get("mood", "").strip()
+    message = str(request.data.get("message", "")).strip()
+    mood = str(request.data.get("mood", "")).strip()
 
     if not message and not mood:
         return Response(
-            {
-                "error": "Please provide a message or mood."
-            },
+            {"error": "Please provide a message or mood."},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    # ---------------------------------------------------------
-    # 2. CHECK GEMINI API KEY
-    # ---------------------------------------------------------
-
-    api_key = getattr(
-        settings,
-        "GEMINI_API_KEY",
-        None,
-    )
+    api_key = getattr(settings, "GROQ_API_KEY", None)
 
     if not api_key:
         return Response(
-            {
-                "error": "Gemini API key is not configured."
-            },
+            {"error": "GROQ API key is not configured."},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
-    # ---------------------------------------------------------
-    # 3. GET USER'S MEDITATION HISTORY
-    # ---------------------------------------------------------
-
-    recent_sessions = (
-        MeditationSession.objects
-        .filter(user=request.user)
-        .order_by("-completed_at")[:5]
-    )
-
-    recent_history = []
-
-    for session in recent_sessions:
-
-        recent_history.append(
-            {
-                "session_type":
-                    session.get_session_type_display(),
-
-                "duration_minutes":
-                    session.duration_minutes,
-
-                "completed_at":
-                    session.completed_at.isoformat(),
-            }
-        )
-
-    # ---------------------------------------------------------
-    # 4. GET OVERALL MEDITATION STATISTICS
-    # ---------------------------------------------------------
-
-    all_sessions = MeditationSession.objects.filter(
-        user=request.user
-    )
-
-    total_sessions = all_sessions.count()
-
-    total_minutes = sum(
-        session.duration_minutes
-        for session in all_sessions
-    )
-
-    # ---------------------------------------------------------
-    # 5. GET CURRENT TIME CONTEXT
-    # ---------------------------------------------------------
-
-    current_time = datetime.now()
-
-    current_hour = current_time.hour
-
-    if current_hour < 12:
-        time_of_day = "morning"
-
-    elif current_hour < 17:
-        time_of_day = "afternoon"
-
-    elif current_hour < 21:
-        time_of_day = "evening"
-
-    else:
-        time_of_day = "night"
-
-    # ---------------------------------------------------------
-    # 6. BUILD USER INPUT
-    # ---------------------------------------------------------
-
-    user_input = ""
-
-    if mood:
-        user_input += (
-            f"Current mood: {mood}\n"
-        )
-
-    if message:
-        user_input += (
-            f"User says: {message}"
-        )
-
-    # ---------------------------------------------------------
-    # 7. CALL GEMINI
-    # ---------------------------------------------------------
-
     try:
-
-        client = genai.Client(
-            api_key=api_key
+        # Get the user's recent meditation history.
+        recent_sessions = (
+            MeditationSession.objects
+            .filter(user=request.user)
+            .order_by("-completed_at")[:5]
         )
+
+        recent_history = []
+
+        for session in recent_sessions:
+            recent_history.append({
+                "session_type": (
+                    session.get_session_type_display()
+                ),
+                "duration_minutes": session.duration_minutes,
+                "completed_at": (
+                    session.completed_at.isoformat()
+                    if session.completed_at
+                    else None
+                ),
+            })
 
         prompt = f"""
-You are FlowState AI.
-
-You are the wellness assistant inside the
-FlowState yoga, meditation and mental-wellness
-platform.
-
-Your job is to understand the user's natural language
-and provide useful wellness guidance.
-
-The user may type:
-
-- one word
-- a short sentence
-- incorrect grammar
-- spelling mistakes
-- casual language
-- incomplete sentences
-- mixed language
-
-Understand the intended meaning naturally.
-
-Examples:
-
-"stress"
-
-"i am stresed"
-
-"cant sleep"
-
-"mala khup tension ahe"
-
-"what yoga good for back pain"
-
-"meditation mhnje kay"
-
-"i feel tired"
-
-Do NOT criticize grammar or spelling.
-
----------------------------------------------------------
-FLOWSTATE SCOPE
----------------------------------------------------------
-
-FlowState focuses mainly on:
-
-- yoga
-- meditation
-- breathing
-- relaxation
-- stress management
-- general wellness
-- gentle movement
-- physical recovery
-- sleep and relaxation
-- yoga philosophy
-- yoga knowledge
-- mindfulness
-
-Stay within this scope.
-
-Do not behave like a general-purpose chatbot.
-
-If the question is unrelated to FlowState's purpose,
-politely explain that FlowState focuses on wellness,
-yoga and meditation.
-
-For useful topics outside FlowState's own content,
-you may provide a trusted external source.
-
----------------------------------------------------------
-INTENT
----------------------------------------------------------
-
-Choose exactly ONE intent:
-
-practice
-knowledge
-external
-unsupported
-
-Use:
-
-practice
-when the user needs an action or wellness practice.
-
-knowledge
-when the user is asking about yoga, meditation,
-breathing, philosophy or wellness information.
-
-external
-when useful information is outside FlowState's
-covered content but a trusted external source
-would help.
-
-unsupported
-when the request is clearly unrelated to
-FlowState's purpose.
-
----------------------------------------------------------
-PRACTICE
----------------------------------------------------------
-
-If intent is "practice", choose exactly ONE:
-
-meditation
-breathing
-yoga
-deep_dive
-
-Do not give multiple practice recommendations.
-
----------------------------------------------------------
-KNOWLEDGE HUB
----------------------------------------------------------
-
-When intent is "knowledge", prefer the FlowState
-Knowledge Hub when the topic matches one of these
-available articles:
-
-what-is-yoga
-
-understanding-pranayama
-
-yoga-sutras
-
-bhagavad-gita
-
-upanishadic-wisdom
-
-Examples:
-
-If the user asks:
-"What is yoga?"
-
-use:
-
-/knowledge-hub/article/what-is-yoga
-
-If the user asks:
-"What is pranayama?"
-
-use:
-
-/knowledge-hub/article/understanding-pranayama
-
-If the user asks:
-"Tell me about Yoga Sutras"
-
-use:
-
-/knowledge-hub/article/yoga-sutras
-
-If the question is about yoga knowledge but does not
-clearly match one of these articles, use:
-
-/knowledge-hub
-
-Do not invent article slugs.
-
----------------------------------------------------------
-EXTERNAL SOURCES
----------------------------------------------------------
-
-For intent "external", choose exactly ONE source_key:
-
-nccih
-pubmed
-who
-
-Use the source that is most appropriate.
-
-Do NOT create URLs yourself.
-
-Only return the source_key.
-
-The backend will convert the source_key
-into the actual trusted URL.
-
----------------------------------------------------------
-ACTION
----------------------------------------------------------
-
-For practice:
-
-meditation → /meditation
-
-breathing → /meditation
-
-yoga → /yoga
-
-deep_dive → /deep-dive
-
-For knowledge:
-
-use the appropriate Knowledge Hub article route.
-
-For unsupported:
-
-there may be no action.
-
-For external:
-
-return source_key only.
-
----------------------------------------------------------
-SAFETY
----------------------------------------------------------
-
-Do not diagnose medical or mental-health conditions.
-
-Do not claim to be a doctor or therapist.
-
-Do not prescribe medication.
-
-If the user describes immediate danger,
-serious emergency or self-harm risk,
-encourage them to contact appropriate emergency
-or professional support.
-
----------------------------------------------------------
-USER CURRENT SITUATION
----------------------------------------------------------
-
-{user_input}
-
----------------------------------------------------------
-USER MEDITATION HISTORY
----------------------------------------------------------
-
-{recent_history}
-
-Total meditation sessions:
-{total_sessions}
-
-Total meditation minutes:
-{total_minutes}
-
----------------------------------------------------------
-TIME CONTEXT
----------------------------------------------------------
-
-Current time:
-{current_time.strftime("%I:%M %p")}
-
-Time of day:
-{time_of_day}
-
----------------------------------------------------------
-PERSONALIZATION
----------------------------------------------------------
-
-Use the user's current message and mood first.
-
-Use meditation history as supporting context.
-
-Consider time of day as supporting context.
-
-Do not assume the user needs meditation simply
-because they have meditation history.
-
-Do not mention database details.
-
-Do not expose private technical information.
-
----------------------------------------------------------
-RESPONSE FORMAT
----------------------------------------------------------
-
-Return ONLY valid JSON.
-
-Use exactly this structure:
-
+You are FlowState AI, a supportive wellness assistant.
+
+Help the user with general mental wellness, stress management,
+relaxation, meditation, yoga, recovery, and healthy habits.
+
+USER MESSAGE:
+{message or "The user selected a mood but did not write a message."}
+
+SELECTED MOOD:
+{mood or "Not provided"}
+
+RECENT MEDITATION HISTORY:
+{json.dumps(recent_history, indent=2)}
+
+FLOWSTATE FEATURES:
+- /yoga — yoga practices
+- /meditation — guided meditation
+- /deep-dive — focused wellness sessions
+- /knowledge-hub — educational wellness articles
+
+GUIDELINES:
+- Be warm, empathetic, clear, and practical.
+- Personalize suggestions using the supplied history when relevant.
+- Never invent user activity or claim to have accessed unavailable records.
+- Do not diagnose medical conditions or prescribe treatment.
+- For serious or immediate danger, encourage contacting local emergency
+  services or a trusted person.
+- Suggest an internal FlowState feature only when it is relevant.
+- Keep the reply concise and useful.
+- Use an external source only when genuinely helpful.
+
+Return ONLY valid JSON with this structure:
 {{
-    "reply": "Short helpful response",
+    "reply": "Your helpful response to the user.",
     "intent": "practice",
     "recommendation": {{
-        "type": "meditation",
-        "title": "5-Minute Calm Reset",
-        "duration": 5
+        "title": "Optional recommendation title",
+        "description": "Optional short recommendation"
     }},
     "action": {{
         "type": "internal",
-        "label": "Start Meditation",
-        "route": "/meditation"
+        "label": "Explore Yoga",
+        "route": "/yoga"
     }}
-}}
-
-For knowledge:
-
-{{
-    "reply": "Short explanation",
-    "intent": "knowledge",
-    "recommendation": null,
-    "action": {{
-        "type": "internal",
-        "label": "Learn in Knowledge Hub",
-        "route": "/knowledge-hub/article/understanding-pranayama"
-    }}
-}}
-
-For external:
-
-{{
-    "reply": "Short helpful explanation",
-    "intent": "external",
-    "recommendation": null,
-    "action": {{
-        "type": "external",
-        "label": "Explore Trusted Information",
-        "source_key": "nccih"
-    }}
-}}
-
-For unsupported:
-
-{{
-    "reply": "FlowState focuses on yoga, meditation and wellness.",
-    "intent": "unsupported",
-    "recommendation": null,
-    "action": null
 }}
 
 Rules:
-
-- Return valid JSON only.
-- No markdown.
-- No code fences.
-- Do not include text outside JSON.
-- Do not provide multiple recommendations.
-- duration must be a number.
-- Use only the allowed internal routes.
-- Do not invent Knowledge Hub article slugs.
-- For external sources use only:
-  nccih, pubmed, who.
+- intent should briefly describe the user's intent.
+- recommendation may be null if no recommendation is needed.
+- action may be null if no action is needed.
+- Internal routes must be selected only from the listed FlowState routes.
+- External actions, if necessary, must use a trusted source key:
+  nccih, pubmed, or who.
+- Do not return Markdown or code fences.
 """
 
-        interaction = client.interactions.create(
-            model="gemini-3.6-flash",
-            input=prompt,
+        client = Groq(api_key=api_key)
+
+        completion = client.chat.completions.create(
+            model="openai/gpt-oss-120b",
+            messages=[
+                {
+                    "role": "user",
+                    "content": prompt,
+                }
+            ],
+            max_completion_tokens=1000,
         )
 
-        # -----------------------------------------------------
-        # 8. GET GEMINI RESPONSE
-        # -----------------------------------------------------
+        raw_output = (
+            completion.choices[0].message.content or ""
+        ).strip()
 
-        raw_output = interaction.output_text.strip()
-
-        # -----------------------------------------------------
-        # 9. REMOVE CODE FENCES IF GEMINI ADDS THEM
-        # -----------------------------------------------------
-
+        # Remove optional Markdown code fences.
         if raw_output.startswith("```json"):
-            raw_output = raw_output[7:]
-
-        if raw_output.startswith("```"):
-            raw_output = raw_output[3:]
+            raw_output = raw_output[7:].strip()
+        elif raw_output.startswith("```"):
+            raw_output = raw_output[3:].strip()
 
         if raw_output.endswith("```"):
-            raw_output = raw_output[:-3]
-
-        raw_output = raw_output.strip()
-
-        # -----------------------------------------------------
-        # 10. PARSE JSON
-        # -----------------------------------------------------
+            raw_output = raw_output[:-3].strip()
 
         ai_data = json.loads(raw_output)
 
-        # -----------------------------------------------------
-        # 11. GET DATA
-        # -----------------------------------------------------
-
-        reply = ai_data.get(
-            "reply",
-            "",
+        reply = str(
+            ai_data.get(
+                "reply",
+                "I'm here to help you with your wellness journey.",
+            )
         )
 
-        intent = ai_data.get(
-            "intent",
-            "unsupported",
-        )
-
-        recommendation = ai_data.get(
-            "recommendation"
-        )
-
-        # -----------------------------------------------------
-        # 12. VALIDATE INTENT
-        # -----------------------------------------------------
-
-        allowed_intents = {
-            "practice",
-            "knowledge",
-            "external",
-            "unsupported",
-        }
-
-        if intent not in allowed_intents:
-            intent = "unsupported"
-            recommendation = None
-            ai_data["action"] = None
-
-        # -----------------------------------------------------
-        # 13. VALIDATE RECOMMENDATION
-        # -----------------------------------------------------
-
-        if intent == "practice":
-
-            allowed_types = {
-                "meditation",
-                "breathing",
-                "yoga",
-                "deep_dive",
-            }
-
-            if not isinstance(
-                recommendation,
-                dict
-            ):
-
-                recommendation = None
-
-            elif recommendation.get("type") not in allowed_types:
-
-                recommendation = None
-
-        else:
-
-            recommendation = None
-
-        # -----------------------------------------------------
-        # 14. BUILD SAFE ACTION
-        # -----------------------------------------------------
-
+        # Validate actions on the Django backend.
         action = build_action(ai_data)
-
-        # -----------------------------------------------------
-        # 15. RETURN RESPONSE
-        # -----------------------------------------------------
 
         return Response(
             {
                 "reply": reply,
-                "intent": intent,
-                "recommendation": recommendation,
+                "intent": ai_data.get("intent", "practice"),
+                "recommendation": ai_data.get("recommendation"),
                 "action": action,
             },
             status=status.HTTP_200_OK,
         )
 
-    # ---------------------------------------------------------
-    # 16. INVALID JSON
-    # ---------------------------------------------------------
-
     except json.JSONDecodeError:
-
-        print(
-            "Gemini returned invalid JSON:"
-        )
-
-        print(raw_output)
+        print("❌ GROQ returned invalid chat JSON")
 
         return Response(
             {
-                "error":
-                    "FlowState AI returned an invalid "
-                    "response format."
+                "error": (
+                    "FlowState AI returned an invalid response. "
+                    "Please try again."
+                )
             },
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
-    # ---------------------------------------------------------
-    # 17. OTHER ERRORS
-    # ---------------------------------------------------------
-
     except Exception as error:
-
-        print("Gemini Error:", repr(error))
+        print("❌ AI WELLNESS CHAT ERROR:", repr(error))
 
         error_message = str(error).lower()
 
-        # Gemini rate-limit / quota error
         if (
             "429" in error_message
-            or "too_many_requests" in error_message
-            or "quota" in error_message
             or "rate limit" in error_message
+            or "quota" in error_message
+            or "too_many_requests" in error_message
         ):
             return Response(
                 {
                     "error": (
-                        "FlowState AI is temporarily unavailable because "
-                        "the Gemini API quota has been reached. "
-                        "Please try again later."
+                        "FlowState AI has reached its temporary "
+                        "usage limit. Please try again later."
                     )
                 },
                 status=status.HTTP_429_TOO_MANY_REQUESTS,
             )
 
-        # Other unexpected Gemini errors
         return Response(
             {
                 "error": (
@@ -772,4 +331,853 @@ Rules:
                 )
             },
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def daily_routine(request):
+
+    # =========================================================
+    # 0. START
+    # =========================================================
+
+    print("🔥 DAILY ROUTINE VIEW REACHED")
+
+    user = request.user
+
+    # =========================================================
+    # 1. GET AVAILABLE TIME
+    # =========================================================
+
+    try:
+
+        available_minutes = int(
+            request.data.get(
+                "available_minutes",
+                30
+            )
+        )
+
+    except (TypeError, ValueError):
+
+        return Response(
+            {
+                "error": (
+                    "Please select a valid amount "
+                    "of available time."
+                )
+            },
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    allowed_minutes = [
+        10,
+        20,
+        30,
+        45,
+        60
+    ]
+
+    if available_minutes not in allowed_minutes:
+
+        return Response(
+            {
+                "error": (
+                    "Available time must be "
+                    "10, 20, 30, 45 or 60 minutes."
+                )
+            },
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    print(
+        "🔥 AVAILABLE TIME:",
+        available_minutes,
+        "minutes"
+    )
+
+    # =========================================================
+    # 2. GROQ API KEY
+    # =========================================================
+
+    api_key = getattr(
+        settings,
+        "GROQ_API_KEY",
+        None
+    )
+
+    if not api_key:
+
+        return Response(
+            {
+                "error": (
+                    "GROQ API key is not configured."
+                )
+            },
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+    # =========================================================
+    # 3. TODAY WELLNESS
+    # =========================================================
+
+    try:
+
+        today = timezone.localdate()
+
+        wellness = (
+            DailyWellness.objects
+            .filter(
+                user=user,
+                date=today
+            )
+            .first()
+        )
+
+        if wellness:
+
+            sleep_hours = float(
+                wellness.sleep_hours or 0
+            )
+
+            water_cups = int(
+                wellness.water_cups or 0
+            )
+
+            streak_days = int(
+                wellness.streak_days or 0
+            )
+
+            wellness_score = int(
+                wellness.wellness_score or 0
+            )
+
+            today_sessions = int(
+                wellness.sessions or 0
+            )
+
+        else:
+
+            sleep_hours = 0
+            water_cups = 0
+            streak_days = 0
+            wellness_score = 0
+            today_sessions = 0
+
+        print(
+            "🔥 WELLNESS DATA READY"
+        )
+
+    except Exception as error:
+
+        print(
+            "❌ WELLNESS DATA ERROR:",
+            repr(error)
+        )
+
+        return Response(
+            {
+                "error":
+                    "Unable to read wellness data."
+            },
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+    # =========================================================
+    # 4. RECENT YOGA
+    # =========================================================
+
+    try:
+
+        recent_yoga = (
+            YogaSession.objects
+            .filter(user=user)
+            .order_by("-completed_at")[:10]
+        )
+
+        yoga_history = []
+
+        for session in recent_yoga:
+
+            yoga_history.append(
+                {
+                    "session_type": (
+                        session.get_session_type_display()
+                        if hasattr(
+                            session,
+                            "get_session_type_display"
+                        )
+                        else str(session)
+                    ),
+
+                    "duration_minutes":
+                        getattr(
+                            session,
+                            "duration_minutes",
+                            None
+                        ),
+
+                    "completed_at": (
+                        session.completed_at.isoformat()
+                        if getattr(
+                            session,
+                            "completed_at",
+                            None
+                        )
+                        else None
+                    ),
+                }
+            )
+
+    except Exception as error:
+
+        print(
+            "❌ YOGA DATA ERROR:",
+            repr(error)
+        )
+
+        yoga_history = []
+
+    # =========================================================
+    # 5. RECENT MEDITATION
+    # =========================================================
+
+    try:
+
+        recent_meditation = (
+            MeditationSession.objects
+            .filter(user=user)
+            .order_by("-completed_at")[:10]
+        )
+
+        meditation_history = []
+
+        for session in recent_meditation:
+
+            meditation_history.append(
+                {
+                    "session_type":
+                        session.get_session_type_display(),
+
+                    "duration_minutes":
+                        session.duration_minutes,
+
+                    "completed_at": (
+                        session.completed_at.isoformat()
+                        if session.completed_at
+                        else None
+                    ),
+                }
+            )
+
+    except Exception as error:
+
+        print(
+            "❌ MEDITATION DATA ERROR:",
+            repr(error)
+        )
+
+        meditation_history = []
+
+    # =========================================================
+    # 6. MEDITATION STATISTICS
+    # =========================================================
+
+    try:
+
+        all_meditation = (
+            MeditationSession.objects
+            .filter(user=user)
+        )
+
+        total_meditation_sessions = (
+            all_meditation.count()
+        )
+
+        total_meditation_minutes = 0
+
+        for session in all_meditation:
+
+            if session.duration_minutes:
+
+                total_meditation_minutes += int(
+                    session.duration_minutes
+                )
+
+    except Exception as error:
+
+        print(
+            "❌ MEDITATION STATISTICS ERROR:",
+            repr(error)
+        )
+
+        total_meditation_sessions = 0
+        total_meditation_minutes = 0
+
+    # =========================================================
+    # 7. BUILD USER DATA
+    # =========================================================
+
+    user_data = {
+
+        "today":
+            today.isoformat(),
+
+        "available_minutes":
+            available_minutes,
+
+        "today_wellness": {
+
+            "sleep_hours":
+                sleep_hours,
+
+            "water_cups":
+                water_cups,
+
+            "streak_days":
+                streak_days,
+
+            "wellness_score":
+                wellness_score,
+
+            "today_sessions":
+                today_sessions,
+        },
+
+        "meditation": {
+
+            "total_sessions":
+                total_meditation_sessions,
+
+            "total_minutes":
+                total_meditation_minutes,
+
+            "recent_sessions":
+                meditation_history,
+        },
+
+        "recent_yoga":
+            yoga_history,
+    }
+
+    print(
+        "🔥 USER DATA:"
+    )
+
+    print(
+        json.dumps(
+            user_data,
+            indent=2
+        )
+    )
+
+    # =========================================================
+    # 8. GROQ CLIENT
+    # =========================================================
+
+    try:
+
+        client = Groq(
+            api_key=api_key
+        )
+
+        # =====================================================
+        # 9. PROMPT
+        # =====================================================
+
+        prompt = f"""
+You are FlowState AI, a personalized daily wellness planner.
+
+Create a wellness routine using the user's real FlowState data.
+
+The user has exactly {available_minutes} minutes available
+for wellness today.
+
+IMPORTANT:
+
+The total duration of every activity combined MUST be exactly
+{available_minutes} minutes.
+
+Do not exceed the available time.
+
+Do not create less than the available time.
+
+USER DATA:
+
+{json.dumps(user_data, indent=2)}
+
+=========================================================
+PERSONALIZATION
+=========================================================
+
+Consider:
+
+- sleep hours
+- water intake
+- wellness score
+- current streak
+- today's sessions
+- recent yoga activity
+- recent meditation activity
+- total meditation experience
+- available time
+
+The routine must feel personalized.
+
+Do not give every user the same routine.
+
+=========================================================
+WELLNESS RULES
+=========================================================
+
+If sleep is low:
+
+- prefer gentle activities
+- avoid intense exercise
+- consider breathing or relaxation
+
+If wellness score is low:
+
+- keep the routine simple
+- avoid overwhelming the user
+
+If recent activity is low:
+
+- include beginner-friendly movement
+
+If the user is consistently active:
+
+- maintain their routine consistency
+
+If the user has many meditation sessions:
+
+- do not make the entire routine meditation
+- balance meditation with movement or recovery
+
+=========================================================
+ACTIVITIES
+=========================================================
+
+Possible activities:
+
+- Breathing
+- Meditation
+- Gentle Yoga
+- Yoga Flow
+- Mindful Break
+- Stretching
+- Relaxation
+- Walking
+- Sleep Preparation
+
+=========================================================
+IMPORTANT DISPLAY RULE
+=========================================================
+
+DO NOT create exact clock times.
+
+Do NOT use:
+
+- 3:15 AM
+- 5:00 PM
+- 9:30 PM
+- 7:30 AM
+
+The user does NOT want a scheduled timetable.
+
+Only provide:
+
+Activity
+Duration
+Reason
+
+=========================================================
+DURATION
+=========================================================
+
+The total duration must equal exactly:
+
+{available_minutes} minutes.
+
+Examples:
+
+10 minutes:
+5 + 5
+
+20 minutes:
+5 + 5 + 10
+
+30 minutes:
+5 + 10 + 15
+
+45 minutes:
+5 + 10 + 15 + 15
+
+60 minutes:
+10 + 10 + 15 + 15 + 10
+
+These are only examples.
+
+Choose the best distribution according to
+the user's wellness data.
+
+=========================================================
+NUMBER OF ACTIVITIES
+=========================================================
+
+Use 2 to 5 activities.
+
+Keep the routine realistic.
+
+=========================================================
+SAFETY
+=========================================================
+
+Do not diagnose medical conditions.
+
+Do not prescribe medical treatment.
+
+Give general wellness guidance only.
+
+=========================================================
+RESPONSE
+=========================================================
+
+Return ONLY valid JSON.
+
+No markdown.
+
+No code fences.
+
+No explanation outside JSON.
+
+Use exactly:
+
+{{
+    "summary": "Short personalized explanation.",
+    "routine": [
+        {{
+            "activity": "Breathing",
+            "duration": 5,
+            "reason": "Helps reduce tension and improve focus."
+        }}
+    ]
+}}
+
+Rules:
+
+- activity must be simple
+- duration must be an integer
+- duration must be in minutes
+- reason must be short
+- no time field
+- total duration MUST equal {available_minutes}
+"""
+
+        print(
+            "🔥 SENDING ROUTINE REQUEST TO GROQ"
+        )
+
+        # =====================================================
+        # 10. GROQ REQUEST
+        # =====================================================
+
+        completion = (
+            client.chat.completions.create(
+                model="openai/gpt-oss-120b",
+
+                messages=[
+                    {
+                        "role": "user",
+                        "content": prompt,
+                    }
+                ],
+
+                max_completion_tokens=1200,
+            )
+        )
+
+        print(
+            "🔥 GROQ RESPONSE RECEIVED"
+        )
+
+        raw_output = (
+            completion
+            .choices[0]
+            .message
+            .content
+            .strip()
+        )
+
+        print(
+            "🔥 RAW OUTPUT:",
+            raw_output
+        )
+
+        # =====================================================
+        # 11. CLEAN JSON
+        # =====================================================
+
+        if raw_output.startswith(
+            "```json"
+        ):
+
+            raw_output = raw_output[7:]
+
+        if raw_output.startswith(
+            "```"
+        ):
+
+            raw_output = raw_output[3:]
+
+        if raw_output.endswith(
+            "```"
+        ):
+
+            raw_output = raw_output[:-3]
+
+        raw_output = raw_output.strip()
+
+        # =====================================================
+        # 12. PARSE
+        # =====================================================
+
+        ai_data = json.loads(
+            raw_output
+        )
+
+        routine = ai_data.get(
+            "routine",
+            []
+        )
+
+        if not isinstance(
+            routine,
+            list
+        ):
+
+            routine = []
+
+        # =====================================================
+        # 13. CLEAN ROUTINE
+        # =====================================================
+
+        cleaned_routine = []
+
+        for item in routine:
+
+            if not isinstance(
+                item,
+                dict
+            ):
+                continue
+
+            try:
+
+                duration = int(
+                    item.get(
+                        "duration",
+                        0
+                    )
+                )
+
+            except (
+                TypeError,
+                ValueError
+            ):
+
+                continue
+
+            if duration <= 0:
+                continue
+
+            cleaned_routine.append(
+                {
+                    "activity":
+                        str(
+                            item.get(
+                                "activity",
+                                "Wellness Practice"
+                            )
+                        ),
+
+                    "duration":
+                        duration,
+
+                    "reason":
+                        str(
+                            item.get(
+                                "reason",
+                                "Supports your daily wellness."
+                            )
+                        ),
+                }
+            )
+
+        # =====================================================
+        # 14. CALCULATE TOTAL
+        # =====================================================
+
+        total_duration = sum(
+            item["duration"]
+            for item in cleaned_routine
+        )
+
+        print(
+            "🔥 TOTAL ROUTINE DURATION:",
+            total_duration
+        )
+
+        # =====================================================
+        # 15. STRICT TIME VALIDATION
+        # =====================================================
+
+        if total_duration != available_minutes:
+
+            print(
+                "❌ ROUTINE DURATION MISMATCH"
+            )
+
+            print(
+                "Expected:",
+                available_minutes
+            )
+
+            print(
+                "Received:",
+                total_duration
+            )
+
+            return Response(
+                {
+                    "error": (
+                        "The AI generated a routine that "
+                        "did not match your selected time. "
+                        "Please generate it again."
+                    )
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+        # =====================================================
+        # 16. SUCCESS
+        # =====================================================
+
+        print(
+            "✅ ROUTINE VALIDATED"
+        )
+
+        return Response(
+            {
+                "summary": ai_data.get(
+                    "summary",
+                    "Here is a personalized wellness routine based on your FlowState activity."
+                ),
+
+                "available_minutes":
+                    available_minutes,
+
+                "total_duration":
+                    total_duration,
+
+                "routine":
+                    cleaned_routine,
+            },
+            status=status.HTTP_200_OK
+        )
+
+    # =========================================================
+    # 17. INVALID JSON
+    # =========================================================
+
+    except json.JSONDecodeError as error:
+
+        print(
+            "❌ INVALID GROQ JSON:",
+            repr(error)
+        )
+
+        return Response(
+            {
+                "error": (
+                    "FlowState AI returned an invalid "
+                    "routine format. Please try again."
+                )
+            },
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+    # =========================================================
+    # 18. OTHER ERROR
+    # =========================================================
+
+    except Exception as error:
+
+        print(
+            "❌ DAILY ROUTINE ERROR:",
+            repr(error)
+        )
+
+        error_message = str(
+            error
+        ).lower()
+
+        # -----------------------------------------------------
+        # RATE LIMIT
+        # -----------------------------------------------------
+
+        if (
+            "429" in error_message
+            or "too_many_requests" in error_message
+            or "quota" in error_message
+            or "rate limit" in error_message
+        ):
+
+            return Response(
+                {
+                    "error": (
+                        "FlowState AI is temporarily unavailable "
+                        "because the GROQ API quota has been reached. "
+                        "Please try again later."
+                    )
+                },
+                status=status.HTTP_429_TOO_MANY_REQUESTS
+            )
+
+        # -----------------------------------------------------
+        # AUTH ERROR
+        # -----------------------------------------------------
+
+        if (
+            "api key" in error_message
+            or "api_key" in error_message
+            or "authentication" in error_message
+            or "unauthorized" in error_message
+        ):
+
+            return Response(
+                {
+                    "error": (
+                        "The GROQ API authentication "
+                        "configuration needs attention."
+                    )
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+        # -----------------------------------------------------
+        # GENERAL ERROR
+        # -----------------------------------------------------
+
+        return Response(
+            {
+                "error": (
+                    "FlowState AI is temporarily unavailable. "
+                    "Please try again."
+                )
+            },
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
