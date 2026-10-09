@@ -306,17 +306,17 @@ Rules:
         )
 
     except Exception:
-    logger.exception("AI WELLNESS CHAT FAILED")
+        logger.exception("AI WELLNESS CHAT FAILED")
 
-    return Response(
-        {
-            "error": (
-                "FlowState AI is temporarily unavailable. "
-                "Please try again."
-            )
-        },
-        status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-    )
+        return Response(
+            {
+                "error": (
+                    "FlowState AI is temporarily unavailable. "
+                    "Please try again."
+                )
+            },
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
 
 
 
