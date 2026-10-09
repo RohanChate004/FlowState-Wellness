@@ -148,68 +148,118 @@ def build_action(ai_data):
     return None
 
 
+
 def get_relevant_asanas(message, mood="", limit=5):
     """
-    Find active yoga asanas relevant to the user's message and mood.
-    Returns actual database records, not AI-invented poses.
+    Return relevant active asanas ranked by relevance.
+    Avoid returning the same first database records every time.
     """
-    message = (message or "").strip().lower()
-    mood = (mood or "").strip().lower()
+    import re
+    from django.db.models import Q
 
-    keywords = set((message + " " + mood).split())
+    message = (message or "").lower()
+    mood = (mood or "").lower()
+    text = f"{message} {mood}"
 
-    # Expand common user expressions into searchable wellness terms.
     keyword_groups = {
         "tired": ["fatigue", "low energy", "energy"],
         "exhausted": ["fatigue", "low energy", "energy"],
+        "low-energy": ["fatigue", "tired", "energy"],
         "anxious": ["anxiety", "stress", "calm", "relaxation"],
         "anxiety": ["anxious", "stress", "calm", "relaxation"],
+        "stressed": ["stress", "anxiety", "calm", "relaxation"],
         "stress": ["anxiety", "calm", "relaxation"],
         "sleep": ["insomnia", "relaxation", "calm"],
         "insomnia": ["sleep", "relaxation", "calm"],
         "back": ["back pain", "spine", "lower back"],
+        "sore": ["recovery", "muscle tension", "stretching"],
         "pain": ["discomfort", "recovery", "relief"],
         "cramping": ["menstrual", "period", "pelvic"],
         "sad": ["low mood", "calm", "relaxation"],
         "focus": ["concentration", "mindfulness"],
+        "stiff": ["flexibility", "mobility", "stretching"],
+        "energy": ["energizing", "fatigue", "vitality"],
     }
 
-    search_terms = set(keywords)
+    stop_words = {
+        "i", "im", "i'm", "me", "my", "the", "a", "an",
+        "is", "am", "are", "was", "and", "or", "to", "for",
+        "of", "in", "on", "with", "it", "this", "that",
+        "feel", "feeling", "feelings", "want", "need",
+        "please", "can", "you", "suggest", "recommend",
+        "give", "help", "some", "what", "how", "today",
+        "yoga", "pose", "poses", "asana", "practice",
+        "gentle", "me", "i'm",
+    }
 
-    for word in keywords:
-        search_terms.update(keyword_groups.get(word, []))
+    words = set(re.findall(r"[a-z]+(?:-[a-z]+)?", text))
+    terms = {
+        word for word in words
+        if len(word) >= 3 and word not in stop_words
+    }
 
-    # Search only active asanas using fields that exist in your model.
-    queryset = Asana.objects.filter(is_active=True)
+    expanded_terms = set(terms)
 
-    from django.db.models import Q
+    for word in terms:
+        expanded_terms.update(keyword_groups.get(word, []))
 
-    query = Q()
-
+    # Search positive relevance fields only.
     searchable_fields = [
         "name",
         "sanskrit_name",
         "short_description",
         "category",
         "benefits",
-        "instructions",
         "focus_area",
         "energy_level",
-        "contraindications",
-        "modifications",
     ]
 
-    for term in search_terms:
-        if len(term) < 3:
-            continue
+    query = Q()
 
+    for term in expanded_terms:
         for field in searchable_fields:
             query |= Q(**{f"{field}__icontains": term})
 
     if not query:
         return []
 
-    results = queryset.filter(query).distinct()[:limit]
+    candidates = Asana.objects.filter(
+        is_active=True
+    ).filter(query).distinct()
+
+    ranked = []
+
+    for asana in candidates:
+        score = 0
+
+        field_weights = {
+            "name": 5,
+            "sanskrit_name": 2,
+            "short_description": 3,
+            "category": 3,
+            "benefits": 4,
+            "focus_area": 5,
+            "energy_level": 2,
+        }
+
+        for field, weight in field_weights.items():
+            value = str(getattr(asana, field, "") or "").lower()
+
+            for term in terms:
+                if term in value:
+                    score += weight
+
+            for term in expanded_terms - terms:
+                if term in value:
+                    score += weight
+
+        if score > 0:
+            ranked.append((score, asana))
+
+    # Highest relevance first; use the name for stable tie-breaking.
+    ranked.sort(key=lambda item: (-item[0], item[1].name.lower()))
+
+    results = [asana for _, asana in ranked[:limit]]
 
     return [
         {
