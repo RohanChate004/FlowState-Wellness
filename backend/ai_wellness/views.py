@@ -14,6 +14,9 @@ from groq import Groq
 from meditation.models import MeditationSession
 from yoga.models import YogaSession
 from users.models import DailyWellness
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------
@@ -302,36 +305,18 @@ Rules:
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
-    except Exception as error:
-        print("❌ AI WELLNESS CHAT ERROR:", repr(error))
+    except Exception:
+    logger.exception("AI WELLNESS CHAT FAILED")
 
-        error_message = str(error).lower()
-
-        if (
-            "429" in error_message
-            or "rate limit" in error_message
-            or "quota" in error_message
-            or "too_many_requests" in error_message
-        ):
-            return Response(
-                {
-                    "error": (
-                        "FlowState AI has reached its temporary "
-                        "usage limit. Please try again later."
-                    )
-                },
-                status=status.HTTP_429_TOO_MANY_REQUESTS,
+    return Response(
+        {
+            "error": (
+                "FlowState AI is temporarily unavailable. "
+                "Please try again."
             )
-
-        return Response(
-            {
-                "error": (
-                    "FlowState AI is temporarily unavailable. "
-                    "Please try again."
-                )
-            },
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        )
+        },
+        status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+    )
 
 
 
